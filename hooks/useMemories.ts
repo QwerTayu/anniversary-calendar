@@ -5,7 +5,8 @@ import {
   where, 
   onSnapshot, 
   addDoc, 
-  deleteDoc, 
+  deleteDoc,
+  updateDoc, 
   doc, 
   Timestamp, 
   orderBy 
@@ -76,5 +77,22 @@ export function useMemories(month: number) {
     await deleteDoc(doc(db, "memories", id));
   };
 
-  return { memories, loading, addMemory, deleteMemory };
+  // 更新関数
+  const updateMemory = async (id: string, title: string, detail: string, date: Date) => {
+    if (!user) return;
+    
+    const mm = (date.getMonth() + 1).toString().padStart(2, '0');
+    const dd = date.getDate().toString().padStart(2, '0');
+
+    const ref = doc(db, "memories", id);
+    await updateDoc(ref, {
+      title,
+      detail,
+      eventDate: Timestamp.fromDate(date),
+      mmdd: `${mm}${dd}`, // 日付変更に対応して検索用タグも更新
+      updatedAt: Timestamp.now(),
+    });
+  };
+
+  return { memories, loading, addMemory, deleteMemory, updateMemory };
 }
