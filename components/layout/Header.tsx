@@ -7,6 +7,7 @@ import { db } from "@/lib/firebase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { getMainMemoryId } from "@/lib/firebase/user";
 import { Memory } from "@/types";
+import { Gem, Handshake, PartyPopper } from "lucide-react";
 
 export function Header() {
   const { user } = useAuth();
@@ -55,7 +56,10 @@ export function Header() {
           <span className="opacity-50">Loading...</span>
         ) : daysAnniversary !== null ? (
           // ピン留めあり: 日数表示
-          <span>{daysAnniversary.toLocaleString()} Days Anniversary</span>
+          <span className="flex items-center gap-1">
+            <Gem className="h-5 w-5" />
+            {daysAnniversary.toLocaleString()} Days Anniversary
+          </span>
         ) : (
           // ピン留めなし: アプリ名
           <span>Anniversary Calendar</span>

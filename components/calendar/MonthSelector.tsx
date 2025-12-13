@@ -25,7 +25,7 @@ export function MonthSelector({ currentMonth, onSelectMonth }: Props) {
 
   return (
     <ScrollArea className="w-full whitespace-nowrap border-b bg-background">
-      <div className="flex w-max space-x-2 p-4" ref={scrollRef}>
+      <div className="flex w-max space-x-2 p-2" ref={scrollRef}>
         {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
           <Button
             key={m}
@@ -34,7 +34,7 @@ export function MonthSelector({ currentMonth, onSelectMonth }: Props) {
             onClick={() => onSelectMonth(m)}
             className={cn(
               "rounded-full px-6 transition-all",
-              currentMonth === m ? "scale-105 font-bold shadow-md" : "opacity-70 hover:opacity-100"
+              currentMonth === m ? "scale-100 font-bold shadow-md" : "opacity-70 hover:opacity-100"
             )}
           >
             {m}月
