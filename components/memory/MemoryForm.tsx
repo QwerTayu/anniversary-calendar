@@ -52,6 +52,18 @@ export function MemoryForm({ initialDate, initialData, onSave, onCancel }: Props
     e.preventDefault();
     if (!title || !dateStr) return;
 
+    // 未来の日付のピン止め禁止チェック
+    // dateStr (yyyy-mm-dd) をローカルタイムの0時0分として解釈して比較
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const inputDate = new Date(y, m - 1, d); // 選択された日付
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // 今日の0時0分
+
+    if (isPinned && inputDate > today) {
+      alert("未来の日付はホーム画面にピン留めできません。\nピン留めを外すか、過去の日付を選択してください。");
+      return; // 保存処理を中断
+    }
+
     // ピン留めの競合チェック
     if (isPinned && currentPinnedId) {
       // 「新規作成」または「別の記念日を編集」していて、既にピン留めがある場合
@@ -122,7 +134,7 @@ export function MemoryForm({ initialDate, initialData, onSave, onCancel }: Props
           onChange={(e) => setIsPinned(e.target.checked)}
         />
         <Label htmlFor="isPinned" className="text-sm font-medium cursor-pointer">
-          この日をピン留めする
+          この記念日をピン留めする
         </Label>
       </div>
 

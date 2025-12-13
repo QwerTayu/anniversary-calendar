@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { differenceInDays } from "date-fns";
+import { differenceInDays, startOfDay } from "date-fns";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { getMainMemoryId } from "@/lib/firebase/user";
 import { Memory } from "@/types";
-import { Gem, Handshake, PartyPopper } from "lucide-react";
+import { Gem } from "lucide-react";
 
 export function Header() {
   const { user } = useAuth();
@@ -34,7 +34,7 @@ export function Header() {
             const data = memorySnap.data() as Memory;
             // 3. 経過日数を計算 (今日 - 記念日)
             // ※ 未来の日付はピン留め不可なので、常に正の数になる想定
-            const diff = differenceInDays(new Date(), data.eventDate.toDate());
+            const diff = differenceInDays(startOfDay(new Date()), startOfDay(data.eventDate.toDate()));
             setDaysAnniversary(diff);
           }
         }
@@ -58,7 +58,7 @@ export function Header() {
           // ピン留めあり: 日数表示
           <span className="flex items-center gap-1">
             <Gem className="h-5 w-5" />
-            {daysAnniversary.toLocaleString()} Days Anniversary
+            {(daysAnniversary + 1).toLocaleString()} Days Anniversary
           </span>
         ) : (
           // ピン留めなし: アプリ名
