@@ -9,10 +9,30 @@ import { getMainMemoryId } from "@/lib/firebase/user";
 import { Memory } from "@/types";
 import { Gem } from "lucide-react";
 
+
+// 日数の序数表記を返す関数
+const formatOrdinalDay = (dayCount: number) => {
+  const mod100 = dayCount % 100;
+  if (mod100 >= 11 && mod100 <= 13) return `${dayCount}th`;
+
+  switch (dayCount % 10) {
+    case 1:
+      return `${dayCount}st`;
+    case 2:
+      return `${dayCount}nd`;
+    case 3:
+      return `${dayCount}rd`;
+    default:
+      return `${dayCount}th`;
+  }
+};
+
 export function Header() {
   const { user } = useAuth();
   const [daysAnniversary, setDaysAnniversary] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const dayLabel = daysAnniversary !== null ? formatOrdinalDay(daysAnniversary + 1) : null;
 
   useEffect(() => {
     const fetchPinnedMemory = async () => {
@@ -58,7 +78,11 @@ export function Header() {
           // ピン留めあり: 日数表示
           <span className="flex items-center gap-1">
             <Gem className="h-5 w-5" />
-            {(daysAnniversary + 1).toLocaleString()} Days Anniversary
+            {dayLabel ? (
+              <>{dayLabel} Day Anniversary</>
+            ) : (
+              <>1st Day Anniversary</>
+            )}
           </span>
         ) : (
           // ピン留めなし: アプリ名
