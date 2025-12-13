@@ -5,14 +5,51 @@ import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 export function useFcmToken() {
   const [token, setToken] = useState<string | null>(null);
+  
+  // 初期値は "default"
   const [notificationPermission, setNotificationPermission] =
-    useState<NotificationPermission>(() => {
-      if (typeof window !== "undefined" && "Notification" in window) {
-        return Notification.permission;
-      }
-      return "default";
-    });
+    useState<NotificationPermission>("default");
 
+  useEffect(() => {
+    // サーバーサイドや非対応ブラウザなら何もしない
+    if (typeof window === "undefined" || !("Notification" in window)) {
+      return;
+    }
+
+    // 現在のブラウザの許可状態
+    const permission = Notification.permission;
+
+    // setStateを即時に呼び出すと警告が出ることがあるため、タイマーで遅延させてから設定
+    const timer = setTimeout(() => {
+      setNotificationPermission(permission);
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  // 許可済みならトークンを取得
+  useEffect(() => {
+    if (notificationPermission === "granted") {
+      const retrieveToken = async () => {
+        try {
+          if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+            const messaging = getMessaging(app);
+            const currentToken = await getToken(messaging, {
+              vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
+            });
+            if (currentToken) {
+              setToken(currentToken);
+            }
+          }
+        } catch (error) {
+          console.error("Token retrieval error:", error);
+        }
+      };
+      retrieveToken();
+    }
+  }, [notificationPermission]);
+
+  // 通知許可を求める関数
   const requestNotificationPermission = async () => {
     try {
       if (typeof window !== "undefined" && "serviceWorker" in navigator) {
