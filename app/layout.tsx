@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { FcmManager } from "@/components/FcmManager";
 import { BottomNav } from "@/components/layout/BottomNav";
+import { Header } from "@/components/layout/Header";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,8 +32,10 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning={true} // 拡張機能とかがbodyタグに直接変更を加えても無視するため // TODO:
       >
+        <Header />
+
         <FcmManager /> {/* 通知ロジックを動かすため */}
-        <main className="min-h-screen pb-20 bg-background text-foreground">
+        <main className="min-h-screen pt-14 pb-20 bg-background text-foreground">
           {children}
         </main>
         

@@ -1,10 +1,13 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useFcmToken } from "@/hooks/useFcmToken";
 import { Button } from "@/components/ui/button";
 import { BellRing } from "lucide-react";
 
 export function FcmManager() {
+  const [isMounted, setIsMounted] = useState(false);
+
   const {
     token,
     notificationPermission,
@@ -12,7 +15,16 @@ export function FcmManager() {
     isPermissionResolved,
   } = useFcmToken();
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsMounted(true);
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   if (
+    !isMounted || 
     !isPermissionResolved ||
     notificationPermission === "granted" ||
     notificationPermission === "denied"
