@@ -1,33 +1,60 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { getMessaging, getToken, onMessage } from "firebase/messaging";
 import { app, db, auth } from "@/lib/firebase/client";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
+const permissionSubscribers = new Set<() => void>();
+
+const canUseNotifications = () =>
+  typeof window !== "undefined" && "Notification" in window;
+
+const emitPermissionChange = () => {
+  permissionSubscribers.forEach((listener) => listener());
+};
+
+const subscribeToPermission = (callback: () => void) => {
+  permissionSubscribers.add(callback);
+
+  let detach: (() => void) | undefined;
+
+  if (
+    canUseNotifications() &&
+    "permissions" in navigator &&
+    typeof navigator.permissions.query === "function"
+  ) {
+    navigator.permissions
+      .query({ name: "notifications" as PermissionName })
+      .then((status) => {
+        const handleChange = () => emitPermissionChange();
+        status.addEventListener("change", handleChange);
+        detach = () => status.removeEventListener("change", handleChange);
+      })
+      .catch(() => {
+        /* ignore */
+      });
+  }
+
+  return () => {
+    permissionSubscribers.delete(callback);
+    detach?.();
+  };
+};
+
+const getClientPermissionSnapshot = (): NotificationPermission =>
+  canUseNotifications() ? Notification.permission : "default";
+
+const getServerPermissionSnapshot = (): NotificationPermission => "default";
+
 export function useFcmToken() {
   const [token, setToken] = useState<string | null>(null);
-  
-  // 初期値は "default"
-  const [notificationPermission, setNotificationPermission] =
-    useState<NotificationPermission>("default");
+  const notificationPermission = useSyncExternalStore(
+    subscribeToPermission,
+    getClientPermissionSnapshot,
+    getServerPermissionSnapshot
+  );
+  const isPermissionResolved =
+    typeof window !== "undefined" ? canUseNotifications() : false;
 
-  useEffect(() => {
-    // サーバーサイドや非対応ブラウザなら何もしない
-    if (typeof window === "undefined" || !("Notification" in window)) {
-      return;
-    }
-
-    // 現在のブラウザの許可状態
-    const permission = Notification.permission;
-
-    // setStateを即時に呼び出すと警告が出ることがあるため、タイマーで遅延させてから設定
-    const timer = setTimeout(() => {
-      setNotificationPermission(permission);
-    }, 0);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  // 許可済みならトークンを取得
   useEffect(() => {
     if (notificationPermission === "granted") {
       const retrieveToken = async () => {
@@ -52,12 +79,14 @@ export function useFcmToken() {
   // 通知許可を求める関数
   const requestNotificationPermission = async () => {
     try {
-      if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      if (
+        typeof window !== "undefined" &&
+        "serviceWorker" in navigator &&
+        canUseNotifications()
+      ) {
         const messaging = getMessaging(app);
-
-        // 許可を求める
         const permission = await Notification.requestPermission();
-        setNotificationPermission(permission);
+        emitPermissionChange();
 
         if (permission === "granted") {
           const currentToken = await getToken(messaging, {
@@ -71,12 +100,16 @@ export function useFcmToken() {
             // Firestoreにトークンを保存する処理
             const user = auth.currentUser;
             if (user) {
-               const userRef = doc(db, "users", user.uid);
-               await setDoc(userRef, {
-                 fcmToken: currentToken,
-                 updatedAt: serverTimestamp(),
-               }, { merge: true }); // 他のフィールドがあっても消さないようにmerge
-               console.log("✅ Token saved to Firestore!");
+              const userRef = doc(db, "users", user.uid);
+              await setDoc(
+                userRef,
+                {
+                  fcmToken: currentToken,
+                  updatedAt: serverTimestamp(),
+                },
+                { merge: true }
+              ); // 他のフィールドがあっても消さないようにmerge
+              console.log("✅ Token saved to Firestore!");
             }
           } else {
             console.log("No registration token available.");
@@ -92,16 +125,16 @@ export function useFcmToken() {
   useEffect(() => {
     if (typeof window !== "undefined" && "serviceWorker" in navigator) {
       const messaging = getMessaging(app);
-      
+
       const unsubscribe = onMessage(messaging, (payload) => {
         console.log("🌟 フォアグラウンドで通知を受信しました:", payload);
-        
+
         // ブラウザ標準の通知を無理やり出す
         if (Notification.permission === "granted") {
-           new Notification(payload.notification?.title || "通知", {
-             body: payload.notification?.body,
-             icon: "/icons/icon-192x192.png",
-           });
+          new Notification(payload.notification?.title || "通知", {
+            body: payload.notification?.body,
+            icon: "/icons/icon-192x192.png",
+          });
         }
       });
 
@@ -109,5 +142,10 @@ export function useFcmToken() {
     }
   }, []);
 
-  return { token, notificationPermission, requestNotificationPermission };
+  return {
+    token,
+    notificationPermission,
+    requestNotificationPermission,
+    isPermissionResolved,
+  };
 }
