@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { FcmManager } from "@/components/FcmManager";
+import { BottomNav } from "@/components/layout/BottomNav";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,7 +32,12 @@ export default function RootLayout({
         suppressHydrationWarning={true} // 拡張機能とかがbodyタグに直接変更を加えても無視するため // TODO:
       >
         <FcmManager /> {/* 通知ロジックを動かすため */}
-        {children}
+        <main className="min-h-screen pb-20 bg-background text-foreground">
+          {children}
+        </main>
+        
+        {/* ボトムナビゲーション */}
+        <BottomNav />
       </body>
     </html>
   );
