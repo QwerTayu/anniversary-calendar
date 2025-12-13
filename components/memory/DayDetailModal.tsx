@@ -17,10 +17,9 @@ interface Props {
   onClose: () => void;
   selectedDate: Date; // カレンダーでタップした日付
   memories: Memory[]; // その日の記念日リスト
-  onAdd: (title: string, detail: string, date: Date) => Promise<void>;
+  onAdd: (title: string, detail: string, date: Date, isPinned: boolean) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
-  onEdit: (id: string, title: string, detail: string, date: Date) => Promise<void>;
-  // 編集機能は今回は簡易実装のため、追加と同じフローを使う（要件次第で拡張）
+  onEdit: (id: string, title: string, detail: string, date: Date, isPinned: boolean) => Promise<void>;
 }
 
 type Mode = "list" | "form";
@@ -36,13 +35,14 @@ export function DayDetailModal({ isOpen, onClose, selectedDate, memories, onAdd,
     onClose();
   };
 
-  const handleSave = async (title: string, detail: string, date: Date) => {
+  // ★変更: isPinned を受け取るように修正
+  const handleSave = async (title: string, detail: string, date: Date, isPinned: boolean) => {
     if (editingMemory) {
       // 編集モードの場合
-      await onEdit(editingMemory.id, title, detail, date);
+      await onEdit(editingMemory.id, title, detail, date, isPinned);
     } else {
       // 新規追加モードの場合
-      await onAdd(title, detail, date);
+      await onAdd(title, detail, date, isPinned);
     }
     setMode("list"); // 保存したらリストモードに戻る
     setEditingMemory(null);

@@ -1,17 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Memory } from "@/types";
+import { getMainMemoryId } from "@/lib/firebase/user";
+import { auth } from "@/lib/firebase/client";
 
 interface Props {
-  initialDate: Date; // 新規作成時のデフォルト日付
-  initialData?: Memory; // 編集時の初期データ
-  onSave: (title: string, detail: string, date: Date) => Promise<void>;
+  initialDate: Date;
+  initialData?: Memory;
+  onSave: (title: string, detail: string, date: Date, isPinned: boolean) => Promise<void>;
   onCancel: () => void;
 }
 
@@ -20,20 +22,53 @@ export function MemoryForm({ initialDate, initialData, onSave, onCancel }: Props
   const [title, setTitle] = useState(initialData?.title || "");
   const [detail, setDetail] = useState(initialData?.detail || "");
   
-  // 日付入力用のstate (HTMLのinput type="date"は "YYYY-MM-DD" 文字列を扱うため)
+  // ピン留め関連のState
+  const [isPinned, setIsPinned] = useState(false);
+  const [currentPinnedId, setCurrentPinnedId] = useState<string | null>(null);
+
   const defaultDateStr = initialData 
     ? format(initialData.eventDate.toDate(), "yyyy-MM-dd") 
     : format(initialDate, "yyyy-MM-dd");
     
   const [dateStr, setDateStr] = useState(defaultDateStr);
 
+  // 現在のピン留め状況を取得し、初期値を設定
+  useEffect(() => {
+    const fetchPinStatus = async () => {
+      if (!auth.currentUser) return;
+      
+      const pinnedId = await getMainMemoryId(auth.currentUser.uid);
+      setCurrentPinnedId(pinnedId);
+
+      // 編集モードで、かつこの記念日がピン留めされているならチェックを入れる
+      if (initialData && pinnedId === initialData.id) {
+        setIsPinned(true);
+      }
+    };
+    fetchPinStatus();
+  }, [initialData]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !dateStr) return;
 
+    // ピン留めの競合チェック
+    if (isPinned && currentPinnedId) {
+      // 「新規作成」または「別の記念日を編集」していて、既にピン留めがある場合
+      // (自分自身がピン留めされている場合は確認不要)
+      if (!initialData || initialData.id !== currentPinnedId) {
+        const shouldOverwrite = window.confirm(
+          "すでにホームにピン留めされた記念日があります。\nこの記念日に変更しますか？"
+        );
+        if (!shouldOverwrite) {
+          return; // キャンセルされたら保存しない
+        }
+      }
+    }
+
     setLoading(true);
     try {
-      await onSave(title, detail, new Date(dateStr));
+      await onSave(title, detail, new Date(dateStr), isPinned);
     } catch (error) {
       console.error(error);
       alert("保存に失敗しました");
@@ -75,6 +110,20 @@ export function MemoryForm({ initialDate, initialData, onSave, onCancel }: Props
           value={detail}
           onChange={(e) => setDetail(e.target.value)}
         />
+      </div>
+
+      {/* ピン留めチェックボックス */}
+      <div className="flex items-center space-x-2 py-2">
+        <input
+          type="checkbox"
+          id="isPinned"
+          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+          checked={isPinned}
+          onChange={(e) => setIsPinned(e.target.checked)}
+        />
+        <Label htmlFor="isPinned" className="text-sm font-medium cursor-pointer">
+          この日をピン留めする
+        </Label>
       </div>
 
       <div className="flex justify-end gap-2 pt-2">

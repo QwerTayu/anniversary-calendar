@@ -14,6 +14,7 @@ import {
 import { db } from "@/lib/firebase/client";
 import { useAuth } from "./useAuth";
 import { Memory } from "@/types";
+import { setMainMemoryId, removeMainMemoryId, getMainMemoryId } from "@/lib/firebase/user";
 
 export function useMemories(month: number) {
   const { user } = useAuth();
@@ -54,13 +55,14 @@ export function useMemories(month: number) {
   }, [user, month]);
 
   // 新規追加関数
-  const addMemory = async (title: string, detail: string, date: Date) => {
+  const addMemory = async (title: string, detail: string, date: Date, isPinned: boolean) => {
     if (!user) return;
     
     const mm = (date.getMonth() + 1).toString().padStart(2, '0');
     const dd = date.getDate().toString().padStart(2, '0');
     
-    await addDoc(collection(db, "memories"), {
+    // ドキュメントを作成
+    const docRef = await addDoc(collection(db, "memories"), {
       userId: user.uid,
       title,
       detail,
@@ -69,16 +71,27 @@ export function useMemories(month: number) {
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
     });
+
+    // ピン留めがONなら、ユーザー情報の mainMemoryId を更新
+    if (isPinned) {
+      await setMainMemoryId(user.uid, docRef.id);
+    }
   };
 
   // 削除関数
   const deleteMemory = async (id: string) => {
     if (!user) return;
     await deleteDoc(doc(db, "memories", id));
+
+    // もし削除した記念日がピン留めされていたら、ピン留めを解除する
+    const currentPinnedId = await getMainMemoryId(user.uid);
+    if (currentPinnedId === id) {
+      await removeMainMemoryId(user.uid);
+    }
   };
 
   // 更新関数
-  const updateMemory = async (id: string, title: string, detail: string, date: Date) => {
+  const updateMemory = async (id: string, title: string, detail: string, date: Date, isPinned: boolean) => {
     if (!user) return;
     
     const mm = (date.getMonth() + 1).toString().padStart(2, '0');
@@ -89,9 +102,20 @@ export function useMemories(month: number) {
       title,
       detail,
       eventDate: Timestamp.fromDate(date),
-      mmdd: `${mm}${dd}`, // 日付変更に対応して検索用タグも更新
+      mmdd: `${mm}${dd}`,
       updatedAt: Timestamp.now(),
     });
+
+    if (isPinned) {
+      // ONなら上書き設定
+      await setMainMemoryId(user.uid, id);
+    } else {
+      // OFFなら、現在ピン留めされているのが「自分(id)」か確認して解除
+      const currentPinnedId = await getMainMemoryId(user.uid);
+      if (currentPinnedId === id) {
+        await removeMainMemoryId(user.uid);
+      }
+    }
   };
 
   return { memories, loading, addMemory, deleteMemory, updateMemory };
