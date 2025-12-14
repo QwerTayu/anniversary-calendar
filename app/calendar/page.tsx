@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { Suspense, useEffect, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter, useSearchParams } from "next/navigation";
 import { MonthSelector } from "@/components/calendar/MonthSelector";
 import { MonthlyCalendar } from "@/components/calendar/MonthlyCalendar";
 
-const isValidMonth = (value: number) => Number.isInteger(value) && value >= 1 && value <= 12;
+const isValidMonth = (value: number) =>
+  Number.isInteger(value) && value >= 1 && value <= 12;
 
 const parseMonthParam = (raw: string | null): number | null => {
   if (!raw) return null;
@@ -14,7 +15,7 @@ const parseMonthParam = (raw: string | null): number | null => {
   return isValidMonth(parsed) ? parsed : null;
 };
 
-export default function CalendarPage() {
+function CalendarContent() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -62,7 +63,12 @@ export default function CalendarPage() {
     updateUrl(selectedMonth);
   };
 
-  if (loading) return <div className="flex h-screen items-center justify-center">Loading...</div>;
+  if (loading)
+    return (
+      <div className="flex h-screen items-center justify-center">
+        Loading...
+      </div>
+    );
   if (!user) return null;
 
   return (
@@ -70,24 +76,33 @@ export default function CalendarPage() {
     // - 全体の高さ: 100vh - ボトムナビ(4rem)
     // - flex-col: ヘッダー(固定) + メイン(残り全部)
     <div className="flex flex-col h-[calc(100vh-8.5rem)] bg-slate-50">
-      
       {/* ヘッダーエリア（固定） */}
       <div className="border-b">
-        <MonthSelector 
-          currentMonth={month} 
-          onSelectMonth={handleSelectMonth} 
-        />
+        <MonthSelector currentMonth={month} onSelectMonth={handleSelectMonth} />
       </div>
 
-
       <div className="flex-1 overflow-hidden">
-        <MonthlyCalendar 
-          year={currentYear} 
-          month={month} 
+        <MonthlyCalendar
+          year={currentYear}
+          month={month}
           onNextMonth={handleNextMonth}
           onPrevMonth={handlePrevMonth}
         />
       </div>
     </div>
+  );
+}
+
+export default function CalendarPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-screen items-center justify-center">
+          Loading...
+        </div>
+      }
+    >
+      <CalendarContent />
+    </Suspense>
   );
 }
