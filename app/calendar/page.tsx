@@ -31,7 +31,7 @@ function CalendarContent() {
 
   useEffect(() => {
     const raw = searchParams.get("month");
-    if (raw && parseMonthParam(raw) === null) {
+    if (!raw || parseMonthParam(raw) === null) {
       router.replace(`/calendar?month=${todayMonth}`);
     }
   }, [searchParams, router, todayMonth]);
