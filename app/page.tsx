@@ -34,6 +34,13 @@ export default function HomePage() {
   // 今日の日付データ
   const todayDate = new Date();
 
+  // 遷移先URLを作成するヘルパー関数
+  const getCalendarLink = (targetDate: Date) => {
+    const m = targetDate.getMonth() + 1;
+    const dateStr = format(targetDate, "MM-dd"); // 12-14
+    return `/calendar?month=${m}&date=${dateStr}`;
+  };
+
   return (
     <div className="p-4 space-y-8 max-w-md mx-auto">
       {/* 1. 今日の記念日エリア */}
@@ -63,23 +70,28 @@ export default function HomePage() {
         {todayMemories.length > 0 ? (
           <div className="space-y-3">
             {todayMemories.map((memory) => (
-              <Card key={memory.id} className="overflow-hidden hover:bg-accent/50 transition-colors">
-                <CardContent className="p-4 flex items-center gap-4">
-                  {/* 日付バッジ (今日なので強調) */}
-                  <div className="flex flex-col items-center justify-center bg-muted rounded-lg w-12 h-12 flex-shrink-0">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground">TODAY</span>
-                    <span className="text-lg font-bold leading-none">{format(todayDate, "d")}</span>
-                  </div>
+              <Link 
+                key={memory.id} 
+                href={getCalendarLink(new Date())}
+                className="block" 
+              >
+                <Card className="overflow-hidden hover:bg-accent/50 transition-colors">
+                  <CardContent className="p-4 flex items-center gap-4">
+                    <div className="flex flex-col items-center justify-center bg-muted rounded-lg w-12 h-12 flex-shrink-0">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground">TODAY</span>
+                      <span className="text-lg font-bold leading-none">{format(todayDate, "d")}</span>
+                    </div>
 
-                  {/* タイトルと詳細 */}
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-lg truncate">{memory.title}</h3>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {memory.detail || "詳細はありません"}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+                    {/* タイトルと詳細 */}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-lg truncate">{memory.title}</h3>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {memory.detail || "詳細はありません"}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
             ))}
           </div>
         ) : (
@@ -113,27 +125,33 @@ export default function HomePage() {
             </div>
           ) : (
             upcomingMemories.map(({ memory, daysLeft, nextDate }) => (
-              <Card key={memory.id} className="overflow-hidden hover:bg-accent/50 transition-colors">
+            <Link 
+              key={memory.id}
+              href={getCalendarLink(nextDate)}
+              className="block"
+            >
+              <Card className="overflow-hidden hover:bg-accent/50 transition-colors">
                 <CardContent className="p-4 flex items-center gap-4">
-                  {/* 日付バッジ */}
-                  <div className="flex flex-col items-center justify-center bg-muted rounded-lg w-12 h-12 flex-shrink-0">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground">
-                      {format(nextDate, "MMM", { locale: ja })}
-                    </span>
-                    <span className="text-lg font-bold leading-none">
-                      {format(nextDate, "d")}
-                    </span>
-                  </div>
+                    {/* 日付バッジ */}
+                    <div className="flex flex-col items-center justify-center bg-muted rounded-lg w-12 h-12 flex-shrink-0">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground">
+                        {format(nextDate, "MMM", { locale: ja })}
+                      </span>
+                      <span className="text-lg font-bold leading-none">
+                        {format(nextDate, "d")}
+                      </span>
+                    </div>
 
-                  {/* タイトルと残り日数 */}
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-bold truncate">{memory.title}</h3>
-                    <p className="text-xs text-muted-foreground truncate">
-                      あと <span className="text-primary font-bold text-sm">{daysLeft}</span> 日
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+                    {/* タイトルと残り日数 */}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold truncate">{memory.title}</h3>
+                      <p className="text-xs text-muted-foreground truncate">
+                        あと <span className="text-primary font-bold text-sm">{daysLeft}</span> 日
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
             ))
           )}
         </div>
