@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
-import { Calendar, ChevronRight, Gift, Coffee } from "lucide-react";
+import { Calendar, ChevronRight, Gift } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useHomeMemories } from "@/hooks/useHomeMemories";
@@ -37,7 +37,7 @@ export default function HomePage() {
   // 遷移先URLを作成するヘルパー関数
   const getCalendarLink = (targetDate: Date) => {
     const m = targetDate.getMonth() + 1;
-    const dateStr = format(targetDate, "MM-dd"); // 12-14
+    const dateStr = format(targetDate, "MM-dd");
     return `/calendar?month=${m}&date=${dateStr}`;
   };
 
@@ -45,16 +45,16 @@ export default function HomePage() {
     <div className="p-4 space-y-8 max-w-md mx-auto">
       {/* 1. 今日の記念日エリア */}
       <section className="space-y-3">
-        {/* ヘッダー部分（タイトル + すべて見るボタン） */}
+        {/* ヘッダー部分 */}
         <div className="flex items-center justify-between px-1">
           {todayMemories.length > 0 ? (
             <div className="flex items-center gap-2 text-primary font-bold animate-pulse">
-              <Gift className="h-5 w-4" />
+              <Gift className="h-5 w-5" />
               <span>今日は特別な日です！</span>
             </div>
           ) : (
              <div className="flex items-center gap-2 font-bold text-muted-foreground">
-              <Coffee className="h-5 w-4" />
+              <span className="text-xl">☕</span>
               <span>今日は記念日はありません</span>
             </div>
           )}
@@ -72,14 +72,17 @@ export default function HomePage() {
             {todayMemories.map((memory) => (
               <Link 
                 key={memory.id} 
-                href={getCalendarLink(new Date())}
+                href={getCalendarLink(todayDate)}
                 className="block" 
               >
                 <Card className="overflow-hidden hover:bg-accent/50 transition-colors">
                   <CardContent className="p-4 flex items-center gap-4">
-                    <div className="flex flex-col items-center justify-center bg-muted rounded-lg w-12 h-12 flex-shrink-0">
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground">TODAY</span>
-                      <span className="text-lg font-bold leading-none">{format(todayDate, "d")}</span>
+                    {/* ★変更: 今日の日付バッジ (yyyy / TODAY) */}
+                    <div className="flex flex-col items-center justify-center bg-muted rounded-lg w-14 h-14 flex-shrink-0">
+                      <span className="text-[10px] font-bold text-muted-foreground">
+                        {format(memory.eventDate.toDate(), "yyyy")}
+                      </span>
+                      <span className="text-sm font-bold leading-none mt-0.5">TODAY</span>
                     </div>
 
                     {/* タイトルと詳細 */}
@@ -95,7 +98,7 @@ export default function HomePage() {
             ))}
           </div>
         ) : (
-          // 記念日がない場合の控えめな表示
+          // 記念日がない場合
           <Card className="bg-muted/30 border-none shadow-none">
             <CardContent className="py-6 text-center text-muted-foreground text-sm">
               穏やかな1日をお過ごしください ✨
@@ -133,12 +136,12 @@ export default function HomePage() {
               <Card className="overflow-hidden hover:bg-accent/50 transition-colors">
                 <CardContent className="p-4 flex items-center gap-4">
                     {/* 日付バッジ */}
-                    <div className="flex flex-col items-center justify-center bg-muted rounded-lg w-12 h-12 flex-shrink-0">
+                    <div className="flex flex-col items-center justify-center bg-muted rounded-lg w-14 h-14 flex-shrink-0">
                       <span className="text-[10px] uppercase font-bold text-muted-foreground">
-                        {format(nextDate, "MMM", { locale: ja })}
+                        {format(nextDate, "yyyy")}
                       </span>
-                      <span className="text-lg font-bold leading-none">
-                        {format(nextDate, "d")}
+                      <span className="text-sm font-medium leading-none">
+                        {format(nextDate, "M/d")}
                       </span>
                     </div>
 
