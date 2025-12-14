@@ -131,8 +131,11 @@ export function DayDetailModal({ isOpen, onClose, selectedDate, memories, onAdd,
                                 variant="ghost" 
                                 size="icon" 
                                 className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                                onClick={() => {
-                                  if(confirm("本当に削除しますか？")) onDelete(memory.id);
+                                onClick={async () => {
+                                  if (confirm("本当に削除しますか？")) {
+                                    await onDelete(memory.id);
+                                    window.dispatchEvent(new Event("pinned-memory-updated"));
+                                  }
                                 }}
                               >
                                 <Trash2 className="h-4 w-4" />

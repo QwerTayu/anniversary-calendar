@@ -9,7 +9,6 @@ import { getMainMemoryId } from "@/lib/firebase/user";
 import { Memory } from "@/types";
 import { Gem } from "lucide-react";
 
-
 // 日数の序数表記を返す関数
 const formatOrdinalDay = (dayCount: number) => {
   const mod100 = dayCount % 100;
@@ -32,11 +31,13 @@ export function Header() {
   const [daysAnniversary, setDaysAnniversary] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const dayLabel = daysAnniversary !== null ? formatOrdinalDay(daysAnniversary + 1) : null;
+  const dayLabel =
+    daysAnniversary !== null ? formatOrdinalDay(daysAnniversary + 1) : null;
 
   useEffect(() => {
     const fetchPinnedMemory = async () => {
       if (!user) {
+        setDaysAnniversary(null);
         setLoading(false);
         return;
       }
@@ -44,7 +45,7 @@ export function Header() {
       try {
         // 1. ユーザーのピン留めIDを取得
         const pinnedId = await getMainMemoryId(user.uid);
-        
+
         if (pinnedId) {
           // 2. 記念日データを取得
           const memoryRef = doc(db, "memories", pinnedId);
@@ -54,18 +55,38 @@ export function Header() {
             const data = memorySnap.data() as Memory;
             // 3. 経過日数を計算 (今日 - 記念日)
             // ※ 未来の日付はピン留め不可なので、常に正の数になる想定
-            const diff = differenceInDays(startOfDay(new Date()), startOfDay(data.eventDate.toDate()));
+            const diff = differenceInDays(
+              startOfDay(new Date()),
+              startOfDay(data.eventDate.toDate())
+            );
             setDaysAnniversary(diff);
+          } else {
+            // 記念日が存在しない場合はリセット
+            setDaysAnniversary(null);
           }
+        } else {
+          // ピン留めがない場合もリセット
+          setDaysAnniversary(null);
         }
       } catch (error) {
         console.error("Header fetch error:", error);
+        setDaysAnniversary(null);
       } finally {
         setLoading(false);
       }
     };
 
+    // 初回実行
     fetchPinnedMemory();
+
+    // カスタムイベント "pinned-memory-updated" を監視するよ！👀
+    const handleUpdate = () => fetchPinnedMemory();
+    window.addEventListener("pinned-memory-updated", handleUpdate);
+
+    // クリーンアップ
+    return () => {
+      window.removeEventListener("pinned-memory-updated", handleUpdate);
+    };
   }, [user]);
 
   return (
