@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { format } from "date-fns";
-import { ja } from "date-fns/locale";
 import { Calendar, ChevronRight, Gift } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
