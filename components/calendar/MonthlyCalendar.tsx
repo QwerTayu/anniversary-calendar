@@ -36,7 +36,10 @@ const parseDateParam = (value: string | null, currentYear: number) => {
     return null;
   }
 
-  const date = new Date(currentYear, monthNum - 1, dayNum);
+  // うるう年対策: 2月29日の場合だけ、強制的にうるう年(2000年)として扱う
+  const targetYear = monthNum === 2 && dayNum === 29 ? 2000 : currentYear;
+
+  const date = new Date(targetYear, monthNum - 1, dayNum);
   if (date.getMonth() !== monthNum - 1 || date.getDate() !== dayNum) {
     return null;
   }
@@ -59,10 +62,10 @@ export function MonthlyCalendar({ year, month, onNextMonth, onPrevMonth }: Props
 
   useEffect(() => {
     if (!dateParam) return;
-    if (!parseDateParam(dateParam, year)) {
+    if (!selectedDate) {
       router.replace(`/calendar?month=${month}`);
     }
-  }, [dateParam, month, router, year]);
+  }, [dateParam, month, router, year, selectedDate]);
 
   const isModalOpen = !!selectedDate;
 
@@ -88,8 +91,9 @@ export function MonthlyCalendar({ year, month, onNextMonth, onPrevMonth }: Props
     return map;
   }, [memories]);
 
-  const handleDayClick = (date: Date) => {
-    const dateStr = format(date, "MM-dd");
+  type MMDD = `${number}-${number}`;
+
+  const handleDayClick = (dateStr: MMDD) => {
     // month=12&date=12-14
     router.push(`/calendar?month=${month}&date=${dateStr}`);
   };
@@ -101,8 +105,8 @@ export function MonthlyCalendar({ year, month, onNextMonth, onPrevMonth }: Props
   const onGridDayClick = (day: typeof days[0]) => {
     const mm = parseInt(day.dateKey.substring(0, 2));
     const dd = parseInt(day.dateKey.substring(2, 4));
-    const date = new Date(year, mm - 1, dd);
-    handleDayClick(date);
+    const dateStr = `${mm}-${dd}` as MMDD;
+    handleDayClick(dateStr);
   };
 
   // モーダルに渡すリスト
@@ -189,7 +193,11 @@ export function MonthlyCalendar({ year, month, onNextMonth, onPrevMonth }: Props
               <Card 
                 key={memory.id} 
                 className="cursor-pointer hover:bg-accent/50 active:scale-[0.99] transition-transform"
-                onClick={() => handleDayClick(memory.eventDate.toDate())}
+                onClick={() => {
+                  const d = memory.eventDate.toDate();
+                  const dateStr = format(d, "M-d") as MMDD;
+                  handleDayClick(dateStr);
+                }}
               >
                 <CardContent className="p-3 flex items-center gap-3">
                   {/* 日付表示 */}
