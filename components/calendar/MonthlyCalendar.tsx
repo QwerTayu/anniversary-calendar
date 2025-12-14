@@ -7,9 +7,7 @@ import { useMemories } from "@/hooks/useMemories";
 import { DayDetailModal } from "@/components/memory/DayDetailModal";
 import { useSwipeable } from "react-swipeable";
 import { format } from "date-fns";
-import { ja } from "date-fns/locale";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { useRouter, useSearchParams } from "next/navigation";
 
 interface Props {
@@ -206,7 +204,7 @@ export function MonthlyCalendar({ year, month, onNextMonth, onPrevMonth }: Props
                       {format(memory.eventDate.toDate(), "d")}
                     </span>
                     <span className="text-[10px] text-muted-foreground">
-                      {format(memory.eventDate.toDate(), "E", { locale: ja })}
+                      {format(memory.eventDate.toDate(), "yyyy")}
                     </span>
                   </div>
                   
@@ -219,10 +217,6 @@ export function MonthlyCalendar({ year, month, onNextMonth, onPrevMonth }: Props
                       </p>
                     )}
                   </div>
-
-                  <Badge variant="outline" className="text-[10px] whitespace-nowrap">
-                    詳細
-                  </Badge>
                 </CardContent>
               </Card>
             ))}
