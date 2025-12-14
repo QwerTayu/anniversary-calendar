@@ -9,7 +9,13 @@ import { useAuth } from "@/hooks/useAuth";
 import { useFcmToken } from "@/hooks/useFcmToken";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -18,7 +24,7 @@ export default function SettingsPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const { requestNotificationPermission } = useFcmToken();
-  
+
   const [isNotifEnabled, setIsNotifEnabled] = useState(false);
   const [isSettingsLoading, setIsSettingsLoading] = useState(true);
 
@@ -89,9 +95,7 @@ export default function SettingsPage() {
             <Bell className="w-5 h-5 text-primary" />
             <CardTitle className="text-lg">通知設定</CardTitle>
           </div>
-          <CardDescription>
-            毎朝9時に記念日をお知らせします
-          </CardDescription>
+          <CardDescription>毎朝9時に記念日をお知らせします</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-between py-2">
@@ -100,7 +104,9 @@ export default function SettingsPage() {
                 記念日通知
               </Label>
               <p className="text-xs text-muted-foreground">
-                {isNotifEnabled ? "現在はONになっています" : "現在はOFFになっています"}
+                {isNotifEnabled
+                  ? "現在はONになっています"
+                  : "現在はOFFになっています"}
               </p>
             </div>
             {isSettingsLoading ? (
@@ -126,15 +132,17 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col gap-1">
-            <span className="text-sm font-medium">ログイン中のメールアドレス</span>
+            <span className="text-sm font-medium">
+              ログイン中のメールアドレス
+            </span>
             <span className="text-sm text-muted-foreground">{user.email}</span>
           </div>
-          
+
           <Separator />
-          
-          <Button 
-            variant="destructive" 
-            className="w-full sm:w-auto" 
+
+          <Button
+            variant="destructive"
+            className="w-full sm:w-auto"
             onClick={handleLogout}
           >
             <LogOut className="mr-2 h-4 w-4" />
@@ -145,7 +153,10 @@ export default function SettingsPage() {
 
       {/* 3. アプリ情報 */}
       <div className="text-center text-sm text-muted-foreground pt-4 flex flex-col items-center gap-2">
-        <Info className="w-4 h-4" />
+        <div className="flex items-center gap-1">
+          <Info className="w-4 h-4" />
+          <span>QwerTayu</span>
+        </div>
         <div>
           <p>Anniversary Calendar</p>
           <p>Version {process.env.NEXT_PUBLIC_APP_VERSION || "1.0.0"}</p>
