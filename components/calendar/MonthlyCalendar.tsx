@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { generateMonthDays, WEEKDAYS } from "@/lib/date-utils";
 import { cn } from "@/lib/utils";
 import { useMemories } from "@/hooks/useMemories";
@@ -10,6 +10,7 @@ import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useRouter, useSearchParams } from "next/navigation";
 
 interface Props {
   year: number;
@@ -18,13 +19,52 @@ interface Props {
   onPrevMonth: () => void;
 }
 
+const parseDateParam = (value: string | null, currentYear: number) => {
+  if (!value) return null;
+  const match = /^(\d{1,2})-(\d{1,2})$/.exec(value);
+  if (!match) return null;
+
+  const monthNum = Number(match[1]);
+  const dayNum = Number(match[2]);
+
+  if (
+    !Number.isInteger(monthNum) ||
+    !Number.isInteger(dayNum) ||
+    monthNum < 1 ||
+    monthNum > 12
+  ) {
+    return null;
+  }
+
+  const date = new Date(currentYear, monthNum - 1, dayNum);
+  if (date.getMonth() !== monthNum - 1 || date.getDate() !== dayNum) {
+    return null;
+  }
+
+  return date;
+};
+
 export function MonthlyCalendar({ year, month, onNextMonth, onPrevMonth }: Props) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  
   const days = useMemo(() => generateMonthDays(year, month), [year, month]);
   const { memories, addMemory, deleteMemory, updateMemory } = useMemories(month);
   
-  // モーダル管理用のState
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const dateParam = searchParams.get("date");
+  const selectedDate = useMemo(
+    () => parseDateParam(dateParam, year),
+    [dateParam, year]
+  );
+
+  useEffect(() => {
+    if (!dateParam) return;
+    if (!parseDateParam(dateParam, year)) {
+      router.replace(`/calendar?month=${month}`);
+    }
+  }, [dateParam, month, router, year]);
+
+  const isModalOpen = !!selectedDate;
 
   // スワイプ設定
   const swipeHandlers = useSwipeable({
@@ -48,13 +88,16 @@ export function MonthlyCalendar({ year, month, onNextMonth, onPrevMonth }: Props
     return map;
   }, [memories]);
 
-  // 日付クリック時のハンドラ
   const handleDayClick = (date: Date) => {
-    setSelectedDate(date);
-    setIsModalOpen(true);
+    const dateStr = format(date, "MM-dd");
+    // month=12&date=12-14
+    router.push(`/calendar?month=${month}&date=${dateStr}`);
   };
 
-  // カレンダーグリッドの日付クリック用ラッパー
+  const handleCloseModal = () => {
+    router.push(`/calendar?month=${month}`);
+  };
+
   const onGridDayClick = (day: typeof days[0]) => {
     const mm = parseInt(day.dateKey.substring(0, 2));
     const dd = parseInt(day.dateKey.substring(2, 4));
@@ -72,7 +115,6 @@ export function MonthlyCalendar({ year, month, onNextMonth, onPrevMonth }: Props
 
   return (
     // landscape:flex-row ... 画面が横長なら「横並び」にする
-    // h-full ... 親要素の高さをいっぱいに使う
     <div className="flex flex-col landscape:flex-row h-full" {...swipeHandlers}>
       
       {/* 1. カレンダーエリア */}
@@ -184,7 +226,7 @@ export function MonthlyCalendar({ year, month, onNextMonth, onPrevMonth }: Props
       {selectedDate && (
         <DayDetailModal
           isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
+          onClose={handleCloseModal}
           selectedDate={selectedDate}
           memories={selectedMemories}
           onAdd={addMemory}

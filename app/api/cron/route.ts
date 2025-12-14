@@ -73,11 +73,24 @@ export async function GET(request: Request) {
       }
 
       // 通知メッセージ作成
-      const titleText = titles.join("」と「");
+      let notificationTitle = "";
+      let notificationBody = "";
+
+      if (titles.length === 1) {
+        // 1つのとき
+        notificationTitle = `今日は「${titles[0]}」です！🎉`;
+        notificationBody = "思い出を振り返りましょう。";
+      } else {
+        // 複数のとき
+        notificationTitle = "今日は記念日です！🎉";
+        // タイトルを改行でつなげて、最後にメッセージを追加
+        notificationBody = `${titles.join("\n")}\n思い出を振り返りましょう。`;
+      }
+
       const message = {
         notification: {
-          title: `今日は「${titleText}」です！🎉`,
-          body: "思い出を振り返りましょう。",
+          title: notificationTitle,
+          body: notificationBody,
         },
         token: token,
       };
