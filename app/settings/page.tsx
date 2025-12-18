@@ -27,6 +27,7 @@ export default function SettingsPage() {
 
   const [isNotifEnabled, setIsNotifEnabled] = useState(false);
   const [isSettingsLoading, setIsSettingsLoading] = useState(true);
+  const [isNotifSaving, setIsNotifSaving] = useState(false);
 
   // 未ログインならリダイレクト
   useEffect(() => {
@@ -55,6 +56,11 @@ export default function SettingsPage() {
   // 通知スイッチの切替ハンドラ
   const handleNotificationToggle = async (checked: boolean) => {
     if (!user) return;
+    if (isNotifSaving) return;
+
+    const prev = isNotifEnabled;
+    setIsNotifEnabled(checked);
+    setIsNotifSaving(true);
 
     try {
       if (checked) {
@@ -70,7 +76,10 @@ export default function SettingsPage() {
       }
     } catch (error) {
       console.error("Notification toggle error:", error);
+      setIsNotifEnabled(prev); // 失敗時は戻す
       alert("設定の変更に失敗しました。");
+    } finally {
+      setIsNotifSaving(false);
     }
   };
 
@@ -109,14 +118,24 @@ export default function SettingsPage() {
                   : "現在はOFFになっています"}
               </p>
             </div>
+
             {isSettingsLoading ? (
               <div className="h-6 w-10 bg-slate-200 rounded animate-pulse" />
             ) : (
+              <div className="flex items-center gap-2">
+                {isNotifSaving && (
+                  <div
+                    className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700"
+                    aria-label="saving"
+                  />
+                )}
               <Switch
                 id="notif-toggle"
                 checked={isNotifEnabled}
                 onCheckedChange={handleNotificationToggle}
+                  disabled={isNotifSaving}
               />
+              </div>
             )}
           </div>
         </CardContent>
