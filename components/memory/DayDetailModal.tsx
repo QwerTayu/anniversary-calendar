@@ -15,11 +15,11 @@ import { MemoryForm } from "./MemoryForm";
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  selectedDate: Date; // カレンダーでタップした日付
-  memories: Memory[]; // その日の記念日リスト
-  onAdd: (title: string, detail: string, date: Date, isPinned: boolean) => Promise<void>;
+  selectedDate: Date;
+  memories: Memory[];
+  onAdd: (title: string, detail: string, date: Date, isShared: boolean, isPinned: boolean) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
-  onEdit: (id: string, title: string, detail: string, date: Date, isPinned: boolean) => Promise<void>;
+  onEdit: (id: string, title: string, detail: string, date: Date, isShared: boolean, isPinned: boolean) => Promise<void>;
 }
 
 type Mode = "list" | "form";
@@ -35,14 +35,13 @@ export function DayDetailModal({ isOpen, onClose, selectedDate, memories, onAdd,
     onClose();
   };
 
-  // ★変更: isPinned を受け取るように修正
-  const handleSave = async (title: string, detail: string, date: Date, isPinned: boolean) => {
+  const handleSave = async (title: string, detail: string, date: Date, isShared: boolean, isPinned: boolean) => {
     if (editingMemory) {
       // 編集モードの場合
-      await onEdit(editingMemory.id, title, detail, date, isPinned);
+      await onEdit(editingMemory.id, title, detail, date, isShared, isPinned);
     } else {
       // 新規追加モードの場合
-      await onAdd(title, detail, date, isPinned);
+      await onAdd(title, detail, date, isShared, isPinned);
     }
     setMode("list"); // 保存したらリストモードに戻る
     setEditingMemory(null);

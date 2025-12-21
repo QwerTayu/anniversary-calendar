@@ -55,7 +55,7 @@ export function useMemories(month: number) {
   }, [user, month]);
 
   // 新規追加関数
-  const addMemory = async (title: string, detail: string, date: Date, isPinned: boolean) => {
+  const addMemory = async (title: string, detail: string, date: Date, isShared: boolean, isPinned: boolean) => {
     if (!user) return;
     
     const mm = (date.getMonth() + 1).toString().padStart(2, '0');
@@ -68,6 +68,7 @@ export function useMemories(month: number) {
       detail,
       eventDate: Timestamp.fromDate(date),
       mmdd: `${mm}${dd}`,
+      isShared,
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
     });
@@ -91,7 +92,7 @@ export function useMemories(month: number) {
   };
 
   // 更新関数
-  const updateMemory = async (id: string, title: string, detail: string, date: Date, isPinned: boolean) => {
+  const updateMemory = async (id: string, title: string, detail: string, date: Date, isShared: boolean, isPinned: boolean) => {
     if (!user) return;
     
     const mm = (date.getMonth() + 1).toString().padStart(2, '0');
@@ -103,6 +104,7 @@ export function useMemories(month: number) {
       detail,
       eventDate: Timestamp.fromDate(date),
       mmdd: `${mm}${dd}`,
+      isShared,
       updatedAt: Timestamp.now(),
     });
 
