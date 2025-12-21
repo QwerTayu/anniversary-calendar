@@ -1,4 +1,4 @@
-import { deleteField, doc, getDoc, updateDoc } from "firebase/firestore";
+import { deleteField, doc, getDoc, updateDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "./client";
 
 // ユーザーの代表記念日IDを取得する
@@ -43,6 +43,19 @@ export async function removeMainMemoryId(userId: string) {
   } catch (error) {
     console.error("Error removing main memory ID:", error);
     throw error;
+  }
+}
+
+// ユーザー ドキュメントの存在を確認し、なければ作成する
+export async function ensureUserDocument(userId: string) {
+  const userRef = doc(db, "users", userId);
+  const snap = await getDoc(userRef);
+  if (!snap.exists()) {
+    await setDoc(userRef, {
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      partnerId: null,
+    });
   }
 }
 

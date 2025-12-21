@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/lib/firebase/client";
+import { ensureUserDocument } from "@/lib/firebase/user";
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
@@ -10,6 +11,9 @@ export function useAuth() {
     // ログイン状態の変化を監視するリスナー
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
+      if (currentUser) {
+        void ensureUserDocument(currentUser.uid);
+      }
       setLoading(false);
     });
 
