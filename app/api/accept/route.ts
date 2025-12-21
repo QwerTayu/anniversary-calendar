@@ -12,11 +12,12 @@ export async function POST(request: Request) {
     }
     const token = authHeader.split("Bearer ")[1];
     const decodedToken = await authAdmin.verifyIdToken(token);
-    const userB_Uid = decodedToken.uid;
+    const userB = decodedToken.uid;
 
     const { code } = await request.json();
-    if (!code)
+    if (!code) {
       return NextResponse.json({ error: "Code is required" }, { status: 400 });
+    }
 
     // 2. トランザクション実行
     await dbAdmin.runTransaction(async (t) => {
@@ -27,49 +28,43 @@ export async function POST(request: Request) {
       if (!inviteDoc.exists) {
         throw new Error("Invalid code");
       }
-      const inviteData = inviteDoc.data();
-      const expiresAt = inviteData?.expiresAt as Timestamp;
-
-      if (expiresAt.toMillis() < Date.now()) {
+      const invite = inviteDoc.data();
+      const expiresAt = (invite?.expiresAt as Timestamp)?.toMillis();
+      if (!expiresAt || expiresAt < Date.now()) {
         throw new Error("Code expired");
       }
 
-      const userA_Uid = inviteData?.issuerId;
-      if (userA_Uid === userB_Uid) {
-        throw new Error("Cannot pair with yourself");
+      const userA = invite?.issuerId as string;
+      if (!userA || userA === userB) {
+        throw new Error("Invalid issuer");
       }
 
       // 既存パートナーチェック (上書き防止)
-      const userARef = dbAdmin.collection("users").doc(userA_Uid);
-      const userBRef = dbAdmin.collection("users").doc(userB_Uid);
-
-      const [userA, userB] = await Promise.all([
+      const userARef = dbAdmin.collection("users").doc(userA);
+      const userBRef = dbAdmin.collection("users").doc(userB);
+      const [aDoc, bDoc] = await Promise.all([
         t.get(userARef),
         t.get(userBRef),
       ]);
-
-      if (userA.data()?.partnerId || userB.data()?.partnerId) {
+      if (aDoc.data()?.partnerId || bDoc.data()?.partnerId) {
         throw new Error("Already paired");
       }
 
       // 更新実行！
-      t.update(userARef, { partnerId: userB_Uid, updatedAt: Timestamp.now() });
-      t.update(userBRef, { partnerId: userA_Uid, updatedAt: Timestamp.now() });
-
-      // 招待コードは使い捨てなので削除
+      t.update(userARef, { partnerId: userB, updatedAt: Timestamp.now() });
+      t.update(userBRef, { partnerId: userA, updatedAt: Timestamp.now() });
       t.delete(inviteRef);
     });
 
     return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("Pairing error:", error);
-    const message = error.message || "Internal Server Error";
-    // クライアントに分かりやすいエラーを返す
-    if (message === "Invalid code" || message === "Code expired") {
-      return NextResponse.json({ error: message }, { status: 400 });
+  } catch (err) {
+    console.error("accept error", err);
+    const msg = err?.message;
+    if (msg === "Invalid code" || msg === "Code expired") {
+      return NextResponse.json({ error: msg }, { status: 400 });
     }
-    if (message === "Already paired") {
-      return NextResponse.json({ error: "Already paired" }, { status: 409 });
+    if (msg === "Already paired") {
+      return NextResponse.json({ error: msg }, { status: 409 });
     }
     return NextResponse.json(
       { error: "Internal Server Error" },

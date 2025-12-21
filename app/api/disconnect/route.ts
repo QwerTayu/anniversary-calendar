@@ -11,17 +11,13 @@ export async function POST(request: Request) {
     }
     const token = authHeader.split("Bearer ")[1];
     const decodedToken = await authAdmin.verifyIdToken(token);
-    const myUid = decodedToken.uid;
+    const myId = decodedToken.uid;
 
     await dbAdmin.runTransaction(async (t) => {
-      const myRef = dbAdmin.collection("users").doc(myUid);
-      const myDoc = await t.get(myRef);
-      const partnerId = myDoc.data()?.partnerId;
-
-      // 自分のパートナーIDを削除
-      t.update(myRef, { partnerId: FieldValue.delete() });
-
-      // 相手がいれば、相手のパートナーIDも削除
+      const meRef = dbAdmin.collection("users").doc(myId);
+      const meDoc = await t.get(meRef);
+      const partnerId = meDoc.data()?.partnerId;
+      t.update(meRef, { partnerId: FieldValue.delete() });
       if (partnerId) {
         const partnerRef = dbAdmin.collection("users").doc(partnerId);
         t.update(partnerRef, { partnerId: FieldValue.delete() });
@@ -29,8 +25,8 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("Disconnect error:", error);
+  } catch (err) {
+    console.error("disconnect error", err);
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }

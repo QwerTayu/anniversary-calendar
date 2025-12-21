@@ -11,29 +11,31 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const token = authHeader.split("Bearer ")[1];
-    const decodedToken = await authAdmin.verifyIdToken(token);
-    const uid = decodedToken.uid;
+    const decoded = await authAdmin.verifyIdToken(token);
+    const uid = decoded.uid;
 
-    // 2. ユニークな招待コードを生成 (重複チェック付き)
-    const chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    let inviteCode = "";
-    let isUnique = false;
-    let retryCount = 0;
-
-    while (!isUnique && retryCount < 5) {
-      inviteCode = "";
-      for (let i = 0; i < 6; i++) {
-        inviteCode += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-
-      // 重複チェック
-      const doc = await dbAdmin.collection("invitations").doc(inviteCode).get();
-      if (!doc.exists) {
-        isUnique = true;
-      }
-      retryCount++;
+    // 既存招待を掃除
+    const snap = await dbAdmin
+      .collection("invitations")
+      .where("issuerId", "==", uid)
+      .get();
+    for (const doc of snap.docs) {
+      await doc.ref.delete();
     }
 
+    // 2. ユニークな招待コードを生成 (重複チェック付き)
+    const chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"; // TODO: O,Iは削除？？
+    let code = "";
+    let isUnique = false;
+    const RETRY_LIMIT = 8;
+    for (let retry = 0; retry < RETRY_LIMIT && !isUnique; retry++) {
+      code = Array.from(
+        { length: 6 },
+        () => chars[Math.floor(Math.random() * chars.length)]
+      ).join("");
+      const exists = await dbAdmin.collection("invitations").doc(code).get();
+      if (!exists.exists) isUnique = true;
+    }
     if (!isUnique) {
       return NextResponse.json(
         { error: "Failed to generate code" },
@@ -42,24 +44,20 @@ export async function POST(request: Request) {
     }
 
     // 3. DBに保存 (有効期限は5分)
-    const expiresAt = new Date();
-    expiresAt.setMinutes(expiresAt.getMinutes() + 5);
+    const expires = new Date(Date.now() + 5 * 60 * 1000);
 
     await dbAdmin
       .collection("invitations")
-      .doc(inviteCode)
+      .doc(code)
       .set({
         issuerId: uid,
-        expiresAt: Timestamp.fromDate(expiresAt),
+        expiresAt: Timestamp.fromDate(expires),
         createdAt: Timestamp.now(),
       });
 
-    return NextResponse.json({
-      code: inviteCode,
-      expiresAt: expiresAt.toISOString(),
-    });
-  } catch (error) {
-    console.error("Invite create error:", error);
+    return NextResponse.json({ code, expiresAt: expires.toISOString() });
+  } catch (err) {
+    console.error("invite error", err);
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }
