@@ -66,6 +66,9 @@ export async function POST(request: Request) {
     if (msg === "Already paired") {
       return NextResponse.json({ error: msg }, { status: 409 });
     }
+    if (msg === "Invalid issuer") {
+      return NextResponse.json({ error: msg }, { status: 422 });
+    }
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }

@@ -2,7 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { LogOut, Bell, Info, ShieldCheck } from "lucide-react";
+import {
+  LogOut,
+  Bell,
+  Info,
+  ShieldCheck,
+  Link as LinkIcon,
+  Unlink,
+} from "lucide-react";
 import { doc, updateDoc, deleteField, onSnapshot } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -19,6 +26,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
 
 export default function SettingsPage() {
   const { user, loading } = useAuth();
@@ -28,6 +36,11 @@ export default function SettingsPage() {
   const [isNotifEnabled, setIsNotifEnabled] = useState(false);
   const [isSettingsLoading, setIsSettingsLoading] = useState(true);
   const [isNotifSaving, setIsNotifSaving] = useState(false);
+  const [partnerId, setPartnerId] = useState<string | null>(null);
+  const [inviteCode, setInviteCode] = useState("");
+  const [issuedCode, setIssuedCode] = useState<string | null>(null);
+  const [issuedExpires, setIssuedExpires] = useState<string | null>(null);
+  const [pairingLoading, setPairingLoading] = useState(false);
 
   // 未ログインならリダイレクト
   useEffect(() => {
@@ -46,6 +59,7 @@ export default function SettingsPage() {
         const data = docSnap.data();
         // fcmTokenフィールドが存在すれば「通知ON」とみなす
         setIsNotifEnabled(!!data.fcmToken);
+        setPartnerId(data.partnerId || null);
       }
       setIsSettingsLoading(false);
     });
@@ -91,6 +105,85 @@ export default function SettingsPage() {
     }
   };
 
+  const getIdToken = async () => auth.currentUser?.getIdToken();
+
+  const handleIssueInvite = async () => {
+    if (!user) return;
+    setPairingLoading(true);
+    try {
+      const token = await getIdToken();
+      const res = await fetch("/api/invite", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "発行に失敗");
+      setIssuedCode(json.code);
+      setIssuedExpires(json.expiresAt);
+    } catch (e) {
+      alert(e.message || "招待コードの発行に失敗しました");
+    } finally {
+      setPairingLoading(false);
+    }
+  };
+
+  const handleAcceptInvite = async () => {
+    if (!user || !inviteCode.trim()) return;
+    setPairingLoading(true);
+    try {
+      const token = await getIdToken();
+      const res = await fetch("/api/accept", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ code: inviteCode.trim().toUpperCase() }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "連携に失敗");
+      setInviteCode("");
+      setIssuedCode(null);
+      setIssuedExpires(null);
+    } catch (e) {
+      if (e.message === "Already paired") {
+        alert("既に他のユーザーと連携しています");
+      }
+      else if (e.message === "Invalid issuer") {
+        alert("無効な招待コードです");
+      }
+      else if (e.message === "Code expired") {
+        alert("招待コードの期限が切れています");
+      }
+      else {
+        alert(e.message || "招待コードが無効か期限切れです");
+      }
+    } finally {
+      setPairingLoading(false);
+    }
+  };
+
+  const handleDisconnect = async () => {
+    if (!user) return;
+    if (!confirm("パートナー連携を解除する？")) return;
+    setPairingLoading(true);
+    try {
+      const token = await getIdToken();
+      const res = await fetch("/api/disconnect", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "解除に失敗");
+      setIssuedCode(null);
+      setIssuedExpires(null);
+    } catch (e) {
+      alert(e.message || "解除に失敗しました");
+    } finally {
+      setPairingLoading(false);
+    }
+  };
+
   if (loading || !user) return null;
 
   return (
@@ -129,19 +222,94 @@ export default function SettingsPage() {
                     aria-label="saving"
                   />
                 )}
-              <Switch
-                id="notif-toggle"
-                checked={isNotifEnabled}
-                onCheckedChange={handleNotificationToggle}
+                <Switch
+                  id="notif-toggle"
+                  checked={isNotifEnabled}
+                  onCheckedChange={handleNotificationToggle}
                   disabled={isNotifSaving}
-              />
+                />
               </div>
             )}
           </div>
         </CardContent>
       </Card>
 
-      {/* 2. アカウント設定 */}
+      {/* 2. パートナー連携 */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <LinkIcon className="w-5 h-5 text-primary" />
+            <CardTitle className="text-lg">パートナー連携</CardTitle>
+          </div>
+          <CardDescription>
+            共有ONの記念日だけ相手のカレンダーにも表示されるよ
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="text-sm">
+            <p className="font-medium">
+              状態: {partnerId ? `連携中 (${partnerId})` : "未連携"}
+            </p>
+            {issuedExpires && (
+              <p className="text-xs text-muted-foreground">
+                招待コード有効期限:{" "}
+                {new Date(issuedExpires).toLocaleTimeString()}
+              </p>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Button
+              onClick={handleIssueInvite}
+              disabled={pairingLoading || !!partnerId}
+            >
+              招待コードを発行
+            </Button>
+            {issuedCode && (
+              <div className="text-sm bg-muted rounded px-3 py-2">
+                <p className="font-bold tracking-[0.3em]">{issuedCode}</p>
+                <p className="text-xs text-muted-foreground">
+                  有効期限までに相手が入力してね
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="invite-code">招待コードを入力</Label>
+            <div className="flex gap-2">
+              <Input
+                id="invite-code"
+                placeholder="6桁コード"
+                value={inviteCode}
+                onChange={(e) => setInviteCode(e.target.value)}
+                className="uppercase"
+                maxLength={6}
+              />
+              <Button
+                onClick={handleAcceptInvite}
+                disabled={pairingLoading || !!partnerId}
+              >
+                連携する
+              </Button>
+            </div>
+          </div>
+
+          <Separator />
+
+          <Button
+            variant="outline"
+            className="text-destructive border-destructive/40"
+            onClick={handleDisconnect}
+            disabled={pairingLoading || !partnerId}
+          >
+            <Unlink className="mr-2 h-4 w-4" />
+            連携を解除する
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* 3. アカウント設定 */}
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
@@ -170,7 +338,7 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      {/* 3. アプリ情報 */}
+      {/* 4. アプリ情報 */}
       <div className="text-center text-sm text-muted-foreground pt-4 flex flex-col items-center gap-2">
         <div className="flex items-center gap-1">
           <Info className="w-4 h-4" />
