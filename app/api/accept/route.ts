@@ -59,7 +59,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("accept error", err);
-    const msg = err?.message;
+    const msg = err instanceof Error ? err.message : String(err ?? "");
     if (msg === "Invalid code" || msg === "Code expired") {
       return NextResponse.json({ error: msg }, { status: 400 });
     }

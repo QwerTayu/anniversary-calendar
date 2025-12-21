@@ -121,7 +121,8 @@ export default function SettingsPage() {
       setIssuedCode(json.code);
       setIssuedExpires(json.expiresAt);
     } catch (e) {
-      alert(e.message || "招待コードの発行に失敗しました");
+      const msg = e instanceof Error ? e.message : "招待コードの発行に失敗しました";
+      alert(msg);
     } finally {
       setPairingLoading(false);
     }
@@ -146,17 +147,15 @@ export default function SettingsPage() {
       setIssuedCode(null);
       setIssuedExpires(null);
     } catch (e) {
-      if (e.message === "Already paired") {
+      const msg = e instanceof Error ? e.message : String(e ?? "");
+      if (msg === "Already paired") {
         alert("既に他のユーザーと連携しています");
-      }
-      else if (e.message === "Invalid issuer") {
+      } else if (msg === "Invalid issuer") {
         alert("無効な招待コードです");
-      }
-      else if (e.message === "Code expired") {
+      } else if (msg === "Code expired") {
         alert("招待コードの期限が切れています");
-      }
-      else {
-        alert(e.message || "招待コードが無効か期限切れです");
+      } else {
+        alert(msg || "招待コードが無効か期限切れです");
       }
     } finally {
       setPairingLoading(false);
@@ -178,7 +177,8 @@ export default function SettingsPage() {
       setIssuedCode(null);
       setIssuedExpires(null);
     } catch (e) {
-      alert(e.message || "解除に失敗しました");
+      const msg = e instanceof Error ? e.message : "解除に失敗しました";
+      alert(msg);
     } finally {
       setPairingLoading(false);
     }
