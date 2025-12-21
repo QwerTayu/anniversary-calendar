@@ -136,68 +136,71 @@ export function DayDetailModal({
               ) : (
                 <ScrollArea className="h-[50vh] pr-4">
                   <div className="space-y-3 pb-4">
-                    {memories.map((memory) => (
-                      <Card key={memory.id} className="overflow-hidden">
-                        <CardContent className="p-4">
-                          <div className="flex justify-between items-start gap-2">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 text-xs font-bold text-primary mb-1">
-                                <span>
-                                  {format(memory.eventDate.toDate(), "yyyy年")}
-                                </span>
-                                {memory.isShared && memory.userId !== currentUserId && (
-                                  <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] text-primary">
-                                    <Share2 className="h-3 w-3" />
-                                    Shared
+                    {memories.map((memory) => {
+                      const isPartnerMemory = memory.userId !== currentUserId;
+
+                      return (
+                        <Card key={memory.id} className="overflow-hidden">
+                          <CardContent className="p-4">
+                            <div className="flex justify-between items-start gap-2">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 text-xs font-bold text-primary mb-1">
+                                  <span>
+                                    {format(memory.eventDate.toDate(), "yyyy年")}
                                   </span>
-                                )}
+                                </div>
+                                <h3 className="font-bold text-lg leading-tight mb-1">
+                                  {isPartnerMemory && memory.isShared && (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 mr-1 px-2 py-0.5 text-[11px] text-primary">
+                                      <Share2 className="h-3 w-3" />
+                                    </span>
+                                  )}
+                                  {memory.title}
+                                </h3>
+                                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                                  {memory.detail}
+                                </p>
                               </div>
-                              <h3 className="font-bold text-lg leading-tight mb-1">
-                                {memory.title}
-                              </h3>
-                              <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                                {memory.detail}
-                              </p>
+
+                              {/* 操作ボタンエリア */}
+                              {(isPartnerMemory && memory.isShared) ? (
+                                <div className="w-8"></div>
+                              ) : (
+                                <div className="flex flex-col gap-1">
+                                  {/* 編集ボタン */}
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-muted-foreground hover:text-primary"
+                                    onClick={() => startEdit(memory)}
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+
+                                  {/* 削除ボタン */}
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                    onClick={async () => {
+                                      if (confirm("本当に削除しますか？")) {
+                                        await onDelete(memory.id);
+                                        window.dispatchEvent(
+                                          new Event("pinned-memory-updated")
+                                        );
+                                      }
+                                    }}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div> 
+                              )}
+                              
                             </div>
-
-                            {/* 操作ボタンエリア */}
-                            {(memory.isShared && memory.userId !== currentUserId) ? (
-                              <div className="w-8"></div>
-                            ) : (
-                              <div className="flex flex-col gap-1">
-                                {/* 編集ボタン */}
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-muted-foreground hover:text-primary"
-                                  onClick={() => startEdit(memory)}
-                                >
-                                  <Pencil className="h-4 w-4" />
-                                </Button>
-
-                                {/* 削除ボタン */}
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                                  onClick={async () => {
-                                    if (confirm("本当に削除しますか？")) {
-                                      await onDelete(memory.id);
-                                      window.dispatchEvent(
-                                        new Event("pinned-memory-updated")
-                                      );
-                                    }
-                                  }}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div> 
-                            )}
-                            
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                          </CardContent>
+                        </Card>
+                      )
+                    })}
                   </div>
                 </ScrollArea>
               )}

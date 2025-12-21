@@ -8,6 +8,7 @@ import { DayDetailModal } from "@/components/memory/DayDetailModal";
 import { useSwipeable } from "react-swipeable";
 import { format } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
+import { Share2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -202,41 +203,50 @@ export function MonthlyCalendar({
           </div>
         ) : (
           <div className="space-y-2">
-            {memories.map((memory) => (
-              <Card
-                key={memory.id}
-                className="cursor-pointer hover:bg-accent/50 active:scale-[0.99] transition-transform"
-                onClick={() => {
-                  const d = memory.eventDate.toDate();
-                  const dateStr = format(d, "M-d") as MMDD;
-                  handleDayClick(dateStr);
-                }}
-              >
-                <CardContent className="p-3 flex items-center gap-3">
-                  {/* 日付表示 */}
-                  <div className="flex flex-col items-center justify-center min-w-[3rem] border-r pr-3">
-                    <span className="text-lg font-bold text-primary leading-none">
-                      {format(memory.eventDate.toDate(), "d")}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground">
-                      {format(memory.eventDate.toDate(), "yyyy")}
-                    </span>
-                  </div>
+            {memories.map((memory) => {
+              const isPartnerMemory = memory.userId !== user?.uid;
 
-                  {/* タイトル */}
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-bold text-sm truncate">
-                      {memory.title}
-                    </h4>
-                    {memory.detail && (
-                      <p className="text-xs text-muted-foreground truncate opacity-80">
-                        {memory.detail}
-                      </p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+              return (
+                <Card
+                  key={memory.id}
+                  className="cursor-pointer hover:bg-accent/50 active:scale-[0.99] transition-transform"
+                  onClick={() => {
+                    const d = memory.eventDate.toDate();
+                    const dateStr = format(d, "M-d") as MMDD;
+                    handleDayClick(dateStr);
+                  }}
+                >
+                  <CardContent className="p-3 flex items-center gap-3">
+                    {/* 日付表示 */}
+                    <div className="flex flex-col items-center justify-center min-w-[3rem] border-r pr-3">
+                      <span className="text-lg font-bold text-primary leading-none">
+                        {format(memory.eventDate.toDate(), "d")}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">
+                        {format(memory.eventDate.toDate(), "yyyy")}
+                      </span>
+                    </div>
+
+                    {/* タイトル */}
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-bold text-sm truncate">
+                        {isPartnerMemory && memory.isShared && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 mr-1 px-2 py-0.5 text-[11px] text-primary">
+                            <Share2 className="h-3 w-3" />
+                          </span>
+                        )}
+                        {memory.title}
+                      </h4>
+                      {memory.detail && (
+                        <p className="text-xs text-muted-foreground truncate opacity-80">
+                          {memory.detail}
+                        </p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
           </div>
         )}
       </div>
