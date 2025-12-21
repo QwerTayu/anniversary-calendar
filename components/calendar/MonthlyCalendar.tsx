@@ -9,6 +9,7 @@ import { useSwipeable } from "react-swipeable";
 import { format } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Props {
   year: number;
@@ -45,13 +46,20 @@ const parseDateParam = (value: string | null, currentYear: number) => {
   return date;
 };
 
-export function MonthlyCalendar({ year, month, onNextMonth, onPrevMonth }: Props) {
+export function MonthlyCalendar({
+  year,
+  month,
+  onNextMonth,
+  onPrevMonth,
+}: Props) {
+  const { user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  
+
   const days = useMemo(() => generateMonthDays(year, month), [year, month]);
-  const { memories, addMemory, deleteMemory, updateMemory } = useMemories(month);
-  
+  const { memories, addMemory, deleteMemory, updateMemory } =
+    useMemories(month);
+
   const dateParam = searchParams.get("date");
   const selectedDate = useMemo(
     () => parseDateParam(dateParam, year),
@@ -69,9 +77,9 @@ export function MonthlyCalendar({ year, month, onNextMonth, onPrevMonth }: Props
 
   // スワイプ設定
   const swipeHandlers = useSwipeable({
-    onSwipedLeft: onNextMonth,  // 左に払う -> 次の月へ
+    onSwipedLeft: onNextMonth, // 左に払う -> 次の月へ
     onSwipedRight: onPrevMonth, // 右に払う -> 前の月へ
-    trackMouse: true,           // マウス操作でも反応させる
+    trackMouse: true, // マウス操作でも反応させる
   });
 
   // カレンダーの開始位置調整
@@ -100,7 +108,7 @@ export function MonthlyCalendar({ year, month, onNextMonth, onPrevMonth }: Props
     router.push(`/calendar?month=${month}`);
   };
 
-  const onGridDayClick = (day: typeof days[0]) => {
+  const onGridDayClick = (day: (typeof days)[0]) => {
     const mm = parseInt(day.dateKey.substring(0, 2));
     const dd = parseInt(day.dateKey.substring(2, 4));
     const dateStr = `${mm}-${dd}` as MMDD;
@@ -110,24 +118,28 @@ export function MonthlyCalendar({ year, month, onNextMonth, onPrevMonth }: Props
   // モーダルに渡すリスト
   const selectedMemories = useMemo(() => {
     if (!selectedDate) return [];
-    const mm = (selectedDate.getMonth() + 1).toString().padStart(2, '0');
-    const dd = selectedDate.getDate().toString().padStart(2, '0');
+    const mm = (selectedDate.getMonth() + 1).toString().padStart(2, "0");
+    const dd = selectedDate.getDate().toString().padStart(2, "0");
     return memoriesByDate.get(`${mm}${dd}`) || [];
   }, [selectedDate, memoriesByDate]);
 
   return (
     // landscape:flex-row ... 画面が横長なら「横並び」にする
     <div className="flex flex-col landscape:flex-row h-full" {...swipeHandlers}>
-      
       {/* 1. カレンダーエリア */}
       {/* landscape:flex-1 ... 横並びの時は幅をリストと分け合う */}
       {/* landscape:overflow-y-auto ... 横長画面で縦が狭い場合、カレンダー単体でスクロールさせる */}
       <div className="flex-none p-4 pb-2 landscape:flex-[4] landscape:overflow-y-auto">
-        
         {/* 曜日ヘッダー */}
         <div className="grid grid-cols-7 mb-2 text-center text-xs text-muted-foreground font-medium">
           {WEEKDAYS.map((w, i) => (
-            <div key={w} className={cn(i === 0 && "text-red-500", i === 6 && "text-blue-500")}>
+            <div
+              key={w}
+              className={cn(
+                i === 0 && "text-red-500",
+                i === 6 && "text-blue-500"
+              )}
+            >
               {w}
             </div>
           ))}
@@ -149,23 +161,26 @@ export function MonthlyCalendar({ year, month, onNextMonth, onPrevMonth }: Props
                 onClick={() => onGridDayClick(day)}
                 className={cn(
                   "relative flex flex-col items-center justify-start pt-1.5 aspect-square rounded-lg border bg-card text-card-foreground shadow-sm transition-all hover:bg-accent active:scale-95",
-                  day.isToday && "border-primary bg-primary/5 ring-1 ring-primary"
+                  day.isToday &&
+                    "border-primary bg-primary/5 ring-1 ring-primary"
                 )}
               >
-                <span className={cn(
-                  "text-xs sm:text-sm font-medium",
-                  day.weekday === 0 && "text-red-500",
-                  day.weekday === 6 && "text-blue-500"
-                )}>
+                <span
+                  className={cn(
+                    "text-xs sm:text-sm font-medium",
+                    day.weekday === 0 && "text-red-500",
+                    day.weekday === 6 && "text-blue-500"
+                  )}
+                >
                   {day.day}
                 </span>
-                
+
                 {hasMemory && (
                   <div className="mt-1 flex gap-0.5 justify-center flex-wrap px-1">
-                     <div className="h-1.5 w-1.5 rounded-full bg-orange-400" />
-                     {dayMemories.length > 1 && (
-                       <div className="h-1.5 w-1.5 rounded-full bg-orange-200" />
-                     )}
+                    <div className="h-1.5 w-1.5 rounded-full bg-orange-400" />
+                    {dayMemories.length > 1 && (
+                      <div className="h-1.5 w-1.5 rounded-full bg-orange-200" />
+                    )}
                   </div>
                 )}
               </button>
@@ -188,8 +203,8 @@ export function MonthlyCalendar({ year, month, onNextMonth, onPrevMonth }: Props
         ) : (
           <div className="space-y-2">
             {memories.map((memory) => (
-              <Card 
-                key={memory.id} 
+              <Card
+                key={memory.id}
                 className="cursor-pointer hover:bg-accent/50 active:scale-[0.99] transition-transform"
                 onClick={() => {
                   const d = memory.eventDate.toDate();
@@ -207,10 +222,12 @@ export function MonthlyCalendar({ year, month, onNextMonth, onPrevMonth }: Props
                       {format(memory.eventDate.toDate(), "yyyy")}
                     </span>
                   </div>
-                  
+
                   {/* タイトル */}
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-bold text-sm truncate">{memory.title}</h4>
+                    <h4 className="font-bold text-sm truncate">
+                      {memory.title}
+                    </h4>
                     {memory.detail && (
                       <p className="text-xs text-muted-foreground truncate opacity-80">
                         {memory.detail}
@@ -234,6 +251,7 @@ export function MonthlyCalendar({ year, month, onNextMonth, onPrevMonth }: Props
           onAdd={addMemory}
           onDelete={deleteMemory}
           onEdit={updateMemory}
+          currentUserId={user?.uid ?? ""}
         />
       )}
     </div>

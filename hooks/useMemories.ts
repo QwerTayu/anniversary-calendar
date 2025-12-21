@@ -1,20 +1,24 @@
 import { useState, useEffect } from "react";
-import { 
-  collection, 
-  query, 
-  where, 
-  onSnapshot, 
-  addDoc, 
+import {
+  collection,
+  query,
+  where,
+  onSnapshot,
+  addDoc,
   deleteDoc,
-  updateDoc, 
-  doc, 
-  Timestamp, 
-  orderBy 
+  updateDoc,
+  doc,
+  Timestamp,
+  orderBy,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { useAuth } from "./useAuth";
 import { Memory } from "@/types";
-import { setMainMemoryId, removeMainMemoryId, getMainMemoryId } from "@/lib/firebase/user";
+import {
+  setMainMemoryId,
+  removeMainMemoryId,
+  getMainMemoryId,
+} from "@/lib/firebase/user";
 
 export function useMemories(month: number) {
   const { user } = useAuth();
@@ -23,44 +27,100 @@ export function useMemories(month: number) {
 
   useEffect(() => {
     if (!user) return;
+    const userRef = doc(db, "users", user.uid);
 
     // 検索用に月の文字列範囲を作成 (例: 1月 -> "0100" 〜 "0199")
     // これで "0101" から "0131" までのデータを一括取得
-    const mm = month.toString().padStart(2, '0');
+    const mm = month.toString().padStart(2, "0");
     const startMmdd = `${mm}00`;
     const endMmdd = `${mm}99`;
-
-    const q = query(
+    const myQuery = query(
       collection(db, "memories"),
       where("userId", "==", user.uid),
       where("mmdd", ">=", startMmdd),
       where("mmdd", "<=", endMmdd),
-      // 同じ日のデータは古い順（過去→現在）で並べる // TODO: descの方が良いかも？
       orderBy("mmdd", "asc"),
-      orderBy("eventDate", "asc") 
+      orderBy("eventDate", "asc")
     );
 
-    // リアルタイムリスナー (onSnapshot)
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Memory[];
-      
-      setMemories(data);
-      setLoading(false);
+    let unsubPartner: (() => void) | null = null;
+
+    const unsubUser = onSnapshot(userRef, (userSnap) => {
+      const partnerId = userSnap.data()?.partnerId as string | null;
+
+      // 2) 既存パートナー購読をクリア
+      if (unsubPartner) {
+        unsubPartner();
+        unsubPartner = null;
+      }
+
+      // 3) パートナー共有クエリ（あるときだけ）
+      const partnerQuery =
+        partnerId &&
+        query(
+          collection(db, "memories"),
+          where("userId", "==", partnerId),
+          where("isShared", "==", true),
+          where("mmdd", ">=", startMmdd),
+          where("mmdd", "<=", endMmdd),
+          orderBy("mmdd", "asc"),
+          orderBy("eventDate", "asc")
+        );
+
+      const unsubMine = onSnapshot(myQuery, (mySnap) => {
+        const mine = mySnap.docs.map((d) => ({
+          id: d.id,
+          ...d.data(),
+        })) as Memory[];
+        const mergeAndSet = (partner: Memory[] = []) => {
+          const merged = [...mine, ...partner].sort((a, b) =>
+            a.mmdd === b.mmdd
+              ? a.eventDate.toMillis() - b.eventDate.toMillis()
+              : a.mmdd.localeCompare(b.mmdd)
+          );
+          setMemories(merged);
+          setLoading(false);
+        };
+
+        if (partnerQuery) {
+          unsubPartner = onSnapshot(partnerQuery, (pSnap) => {
+            const partner = pSnap.docs.map((d) => ({
+              id: d.id,
+              ...d.data(),
+            })) as Memory[];
+            mergeAndSet(partner);
+          });
+        } else {
+          mergeAndSet([]);
+        }
+      });
+
+      // クリーンアップ
+      return () => {
+        unsubMine();
+        if (unsubPartner) unsubPartner();
+      };
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubUser();
+      if (unsubPartner) unsubPartner();
+    };
   }, [user, month]);
 
   // 新規追加関数
-  const addMemory = async (title: string, detail: string, date: Date, isShared: boolean, isPinned: boolean) => {
+  const addMemory = async (
+    title: string,
+    detail: string,
+    date: Date,
+    isShared: boolean,
+    isPinned: boolean
+  ) => {
     if (!user) return;
-    
-    const mm = (date.getMonth() + 1).toString().padStart(2, '0');
-    const dd = date.getDate().toString().padStart(2, '0');
-    
+
+    const mm = (date.getMonth() + 1).toString().padStart(2, "0");
+    const dd = date.getDate().toString().padStart(2, "0");
+
     // ドキュメントを作成
     const docRef = await addDoc(collection(db, "memories"), {
       userId: user.uid,
@@ -92,11 +152,18 @@ export function useMemories(month: number) {
   };
 
   // 更新関数
-  const updateMemory = async (id: string, title: string, detail: string, date: Date, isShared: boolean, isPinned: boolean) => {
+  const updateMemory = async (
+    id: string,
+    title: string,
+    detail: string,
+    date: Date,
+    isShared: boolean,
+    isPinned: boolean
+  ) => {
     if (!user) return;
-    
-    const mm = (date.getMonth() + 1).toString().padStart(2, '0');
-    const dd = date.getDate().toString().padStart(2, '0');
+
+    const mm = (date.getMonth() + 1).toString().padStart(2, "0");
+    const dd = date.getDate().toString().padStart(2, "0");
 
     const ref = doc(db, "memories", id);
     await updateDoc(ref, {
