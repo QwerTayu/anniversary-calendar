@@ -44,6 +44,7 @@ export function useMemories(month: number) {
     );
 
     let unsubPartner: (() => void) | null = null;
+    let unsubMine: (() => void) | null = null;
 
     const unsubUser = onSnapshot(userRef, (userSnap) => {
       const partnerId = userSnap.data()?.partnerId as string | null;
@@ -52,6 +53,10 @@ export function useMemories(month: number) {
       if (unsubPartner) {
         unsubPartner();
         unsubPartner = null;
+      }
+      if (unsubMine) {
+        unsubMine();
+        unsubMine = null;
       }
 
       // 3) パートナー共有クエリ（あるときだけ）
@@ -67,7 +72,7 @@ export function useMemories(month: number) {
           orderBy("eventDate", "asc")
         );
 
-      const unsubMine = onSnapshot(myQuery, (mySnap) => {
+      unsubMine = onSnapshot(myQuery, (mySnap) => {
         const mine = mySnap.docs.map((d) => ({
           id: d.id,
           ...d.data(),
@@ -94,16 +99,11 @@ export function useMemories(month: number) {
           mergeAndSet([]);
         }
       });
-
-      // クリーンアップ
-      return () => {
-        unsubMine();
-        if (unsubPartner) unsubPartner();
-      };
     });
 
     return () => {
       unsubUser();
+      if (unsubMine) unsubMine();
       if (unsubPartner) unsubPartner();
     };
   }, [user, month]);
