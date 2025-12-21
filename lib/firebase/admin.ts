@@ -4,7 +4,7 @@ import admin from "firebase-admin";
 // すでに初期化されていたら何もしない
 if (!admin.apps.length) {
   // Vercelの環境変数には改行コードが含まれないことがあるので、置換処理を入れる
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
 
   admin.initializeApp({
     credential: admin.credential.cert({
@@ -17,3 +17,4 @@ if (!admin.apps.length) {
 
 export const dbAdmin = admin.firestore();
 export const messagingAdmin = admin.messaging();
+export const authAdmin = admin.auth();

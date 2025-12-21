@@ -7,6 +7,7 @@ export interface Memory {
   detail: string;
   eventDate: Timestamp; 
   mmdd: string; // 検索用 "0425"など
+  isShared?: boolean; // 共有設定フラグ
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
