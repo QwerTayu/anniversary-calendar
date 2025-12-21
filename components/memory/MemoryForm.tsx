@@ -13,6 +13,7 @@ import { auth } from "@/lib/firebase/client";
 interface Props {
   initialDate: Date;
   initialData?: Memory;
+  isPartnerMemory?: boolean;
   onSave: (
     title: string,
     detail: string,
@@ -26,6 +27,7 @@ interface Props {
 export function MemoryForm({
   initialDate,
   initialData,
+  isPartnerMemory,
   onSave,
   onCancel,
 }: Props) {
@@ -141,19 +143,21 @@ export function MemoryForm({
         />
       </div>
 
-      {/* 共有トグル TODO: 予定のオーナーでなければ表示されない */}
-      <div className="flex items-center space-x-2">
-        <input
-          type="checkbox"
-          id="isShared"
-          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-          checked={isShared}
-          onChange={(e) => setIsShared(e.target.checked)}
-        />
-        <Label htmlFor="isShared" className="text-sm font-medium cursor-pointer">
-          パートナーに共有する
-        </Label>
-      </div>
+      {/* 共有トグル */}
+      { !isPartnerMemory && (
+        <div className="flex items-center space-x-2">
+          <input
+            type="checkbox"
+            id="isShared"
+            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+            checked={isShared}
+            onChange={(e) => setIsShared(e.target.checked)}
+          />
+          <Label htmlFor="isShared" className="text-sm font-medium cursor-pointer">
+            パートナーに共有する
+          </Label>
+        </div>
+      )}
 
       {/* ピン留めチェックボックス */}
       <div className="flex items-center space-x-2">

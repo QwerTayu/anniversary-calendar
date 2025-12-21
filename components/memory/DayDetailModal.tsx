@@ -122,6 +122,7 @@ export function DayDetailModal({
             <MemoryForm
               initialDate={selectedDate}
               initialData={editingMemory || undefined}
+              isPartnerMemory={editingMemory ? editingMemory.userId !== currentUserId : false}
               onSave={handleSave}
               onCancel={cancelForm}
             />
