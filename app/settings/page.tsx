@@ -41,6 +41,7 @@ export default function SettingsPage() {
   const [issuedCode, setIssuedCode] = useState<string | null>(null);
   const [issuedExpires, setIssuedExpires] = useState<string | null>(null);
   const [pairingLoading, setPairingLoading] = useState(false);
+  const [expiresCountdown, setExpiresCountdown] = useState<string | null>(null);
 
   // 未ログインならリダイレクト
   useEffect(() => {
@@ -121,7 +122,8 @@ export default function SettingsPage() {
       setIssuedCode(json.code);
       setIssuedExpires(json.expiresAt);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "招待コードの発行に失敗しました";
+      const msg =
+        e instanceof Error ? e.message : "招待コードの発行に失敗しました";
       alert(msg);
     } finally {
       setPairingLoading(false);
@@ -183,6 +185,28 @@ export default function SettingsPage() {
       setPairingLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!issuedExpires) {
+      setExpiresCountdown(null);
+      return;
+    }
+    const update = () => {
+      const diff = new Date(issuedExpires).getTime() - Date.now();
+      if (diff <= 0) {
+        setExpiresCountdown("期限切れ");
+        return;
+      }
+      const mins = Math.floor(diff / 60000);
+      const secs = Math.floor((diff % 60000) / 1000)
+        .toString()
+        .padStart(2, "0");
+      setExpiresCountdown(`${mins}分${secs}秒`);
+    };
+    update();
+    const id = setInterval(update, 1000);
+    return () => clearInterval(id);
+  }, [issuedExpires]);
 
   if (loading || !user) return null;
 
@@ -250,10 +274,9 @@ export default function SettingsPage() {
             <p className="font-medium">
               状態: {partnerId ? `連携中 (${partnerId})` : "未連携"}
             </p>
-            {issuedExpires && (
+            {issuedExpires && expiresCountdown && (
               <p className="text-xs text-muted-foreground">
-                招待コード有効期限:{" "}
-                {new Date(issuedExpires).toLocaleTimeString()}
+                招待コード有効期限: あと {expiresCountdown}
               </p>
             )}
           </div>

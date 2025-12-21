@@ -43,8 +43,10 @@ export async function POST(request: Request) {
       );
     }
 
+    const EXPIRES_MINUTES = 5;
+
     // 3. DBに保存 (有効期限は5分)
-    const expires = new Date(Date.now() + 5 * 60 * 1000);
+    const expires = new Date(Date.now() + EXPIRES_MINUTES * 60 * 1000);
 
     await dbAdmin
       .collection("invitations")

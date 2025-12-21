@@ -49,7 +49,7 @@ export async function GET(request: Request) {
       ownerMemories.set(uid, arr);
     });
 
-    // 通知対象ユーザーを取得（全ユーザーを読む。規模が大きくなったら絞り込みを検討）
+    // TODO: 通知対象ユーザーを取得（全ユーザーを読む。規模が大きくなったら絞り込みを検討）
     const usersSnap = await dbAdmin.collection("users").get();
 
     let successCount = 0;
