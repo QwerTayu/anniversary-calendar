@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, startTransition } from "react";
 import {
   collection,
   query,
@@ -24,6 +24,25 @@ export function useMemories(month: number) {
   const { user } = useAuth();
   const [memories, setMemories] = useState<Memory[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pinnedId, setPinnedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    if (!user) {
+      startTransition(() => setPinnedId(null));
+      return () => {
+        alive = false;
+      };
+    }
+    (async () => {
+      const id = await getMainMemoryId(user.uid);
+      if (!alive) return;
+      startTransition(() => setPinnedId(id));
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
@@ -136,6 +155,7 @@ export function useMemories(month: number) {
     // ピン留めがONなら、ユーザー情報の mainMemoryId を更新
     if (isPinned) {
       await setMainMemoryId(user.uid, docRef.id);
+      setPinnedId(docRef.id);
     }
   };
 
@@ -148,6 +168,7 @@ export function useMemories(month: number) {
     const currentPinnedId = await getMainMemoryId(user.uid);
     if (currentPinnedId === id) {
       await removeMainMemoryId(user.uid);
+      setPinnedId(null);
     }
   };
 
@@ -178,14 +199,29 @@ export function useMemories(month: number) {
     if (isPinned) {
       // ONなら上書き設定
       await setMainMemoryId(user.uid, id);
+      setPinnedId(id);
     } else {
       // OFFなら、現在ピン留めされているのが「自分(id)」か確認して解除
       const currentPinnedId = await getMainMemoryId(user.uid);
       if (currentPinnedId === id) {
         await removeMainMemoryId(user.uid);
+        setPinnedId(null);
       }
     }
   };
 
-  return { memories, loading, addMemory, deleteMemory, updateMemory };
+  const togglePin = async (id: string) => {
+    if (!user) return;
+    if (pinnedId === id) {
+      // すでにピン留めされている -> 解除
+      await removeMainMemoryId(user.uid);
+      setPinnedId(null);
+    } else {
+      // ピン留めされていない -> 設定
+      await setMainMemoryId(user.uid, id);
+      setPinnedId(id);
+    }
+  }
+
+  return { memories, loading, addMemory, deleteMemory, updateMemory, togglePin, pinnedId };
 }

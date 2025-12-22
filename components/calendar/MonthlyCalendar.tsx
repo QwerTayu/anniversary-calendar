@@ -58,7 +58,7 @@ export function MonthlyCalendar({
   const searchParams = useSearchParams();
 
   const days = useMemo(() => generateMonthDays(year, month), [year, month]);
-  const { memories, addMemory, deleteMemory, updateMemory } =
+  const { memories, addMemory, deleteMemory, updateMemory, pinnedId, togglePin } =
     useMemories(month);
 
   const dateParam = searchParams.get("date");
@@ -262,6 +262,8 @@ export function MonthlyCalendar({
           onDelete={deleteMemory}
           onEdit={updateMemory}
           currentUserId={user?.uid ?? ""}
+          pinnedMemoryId={pinnedId}
+          onTogglePin={togglePin}
         />
       )}
     </div>
