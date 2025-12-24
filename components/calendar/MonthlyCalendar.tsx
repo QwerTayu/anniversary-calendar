@@ -8,7 +8,7 @@ import { DayDetailModal } from "@/components/memory/DayDetailModal";
 import { useSwipeable } from "react-swipeable";
 import { format } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
-import { Share2 } from "lucide-react";
+// import { Share2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -204,7 +204,7 @@ export function MonthlyCalendar({
         ) : (
           <div className="space-y-2">
             {memories.map((memory) => {
-              const isPartnerMemory = memory.userId !== user?.uid;
+              // const isPartnerMemory = memory.userId !== user?.uid; // Share2表示用
 
               return (
                 <Card
@@ -230,11 +230,11 @@ export function MonthlyCalendar({
                     {/* タイトル */}
                     <div className="flex-1 min-w-0">
                       <h4 className="font-bold text-sm truncate">
-                        {isPartnerMemory && memory.isShared && (
+                        {/* {isPartnerMemory && memory.isShared && (
                           <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 mr-1 px-2 py-0.5 text-[11px] text-primary">
                             <Share2 className="h-3 w-3" />
                           </span>
-                        )}
+                        )} */}
                         {memory.title}
                       </h4>
                       {memory.detail && (

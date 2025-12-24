@@ -8,7 +8,7 @@ import {
   Pencil,
   Plus,
   CalendarIcon,
-  Share2,
+  // Share2,
   Pin,
   PinOff,
 } from "lucide-react";
@@ -169,11 +169,11 @@ export function DayDetailModal({
                                   </span>
                                 </div>
                                 <h3 className="font-bold text-lg leading-tight mb-1">
-                                  {isPartnerMemory && memory.isShared && (
+                                  {/* {isPartnerMemory && memory.isShared && (
                                     <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 mr-1 px-2 py-0.5 text-[11px] text-primary">
                                       <Share2 className="h-3 w-3" />
                                     </span>
-                                  )}
+                                  )} */}
                                   {memory.title}
                                 </h3>
                                 <p className="text-sm text-muted-foreground whitespace-pre-wrap">
