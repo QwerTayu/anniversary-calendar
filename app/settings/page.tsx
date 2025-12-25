@@ -37,6 +37,7 @@ export default function SettingsPage() {
   const [isSettingsLoading, setIsSettingsLoading] = useState(true);
   const [isNotifSaving, setIsNotifSaving] = useState(false);
   const [partnerId, setPartnerId] = useState<string | null>(null);
+  const [partnerEmail, setPartnerEmail] = useState<string | null>(null);
   const [inviteCode, setInviteCode] = useState("");
   const [issuedCode, setIssuedCode] = useState<string | null>(null);
   const [issuedExpires, setIssuedExpires] = useState<string | null>(null);
@@ -60,7 +61,17 @@ export default function SettingsPage() {
         const data = docSnap.data();
         // fcmTokenフィールドが存在すれば「通知ON」とみなす
         setIsNotifEnabled(!!data.fcmToken);
-        setPartnerId(data.partnerId || null);
+        const pid = data.partnerId || null;
+        setPartnerId(pid);
+
+        if (pid) {
+          const pref = doc(db, "users", pid);
+          onSnapshot(pref, (pSnap) => {
+            setPartnerEmail(pSnap.exists() ? pSnap.data().email ?? null : null);
+          });
+        } else {
+          setPartnerEmail(null);
+        }
       }
       setIsSettingsLoading(false);
     });
@@ -272,7 +283,8 @@ export default function SettingsPage() {
         <CardContent className="space-y-4">
           <div className="text-sm">
             <p className="font-medium">
-              状態: {partnerId ? `連携中 (${partnerId})` : "未連携"}
+              状態:{" "}
+              {partnerId ? `連携中 (${partnerEmail ?? partnerId})` : "未連携"}
             </p>
             {issuedExpires && expiresCountdown && (
               <p className="text-xs text-muted-foreground">

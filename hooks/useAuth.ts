@@ -12,7 +12,7 @@ export function useAuth() {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
-        void ensureUserDocument(currentUser.uid);
+        void ensureUserDocument(currentUser);
       }
       setLoading(false);
     });
