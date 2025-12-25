@@ -13,10 +13,12 @@ import { auth } from "@/lib/firebase/client";
 interface Props {
   initialDate: Date;
   initialData?: Memory;
+  isPartnerMemory?: boolean;
   onSave: (
     title: string,
     detail: string,
     date: Date,
+    isShared: boolean,
     isPinned: boolean
   ) => Promise<void>;
   onCancel: () => void;
@@ -25,6 +27,7 @@ interface Props {
 export function MemoryForm({
   initialDate,
   initialData,
+  isPartnerMemory,
   onSave,
   onCancel,
 }: Props) {
@@ -34,6 +37,7 @@ export function MemoryForm({
 
   // ピン留め関連のState
   const [isPinned, setIsPinned] = useState(false);
+  const [isShared, setIsShared] = useState<boolean>(initialData?.isShared ?? false);
   const [currentPinnedId, setCurrentPinnedId] = useState<string | null>(null);
 
   const defaultDateStr = initialData
@@ -92,7 +96,7 @@ export function MemoryForm({
 
     setLoading(true);
     try {
-      await onSave(title, detail, new Date(dateStr), isPinned);
+      await onSave(title, detail, new Date(dateStr), isShared, isPinned);
 
       // ピン留め変更のカスタムイベントを発火
       window.dispatchEvent(new Event("pinned-memory-updated"));
@@ -139,8 +143,24 @@ export function MemoryForm({
         />
       </div>
 
+      {/* 共有トグル */}
+      { !isPartnerMemory && (
+        <div className="flex items-center space-x-2">
+          <input
+            type="checkbox"
+            id="isShared"
+            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+            checked={isShared}
+            onChange={(e) => setIsShared(e.target.checked)}
+          />
+          <Label htmlFor="isShared" className="text-sm font-medium cursor-pointer">
+            パートナーに共有する
+          </Label>
+        </div>
+      )}
+
       {/* ピン留めチェックボックス */}
-      <div className="flex items-center space-x-2 py-2">
+      <div className="flex items-center space-x-2">
         <input
           type="checkbox"
           id="isPinned"

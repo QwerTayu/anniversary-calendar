@@ -2,7 +2,12 @@
 
 import Link from "next/link";
 import { format } from "date-fns";
-import { Calendar, ChevronRight, Gift } from "lucide-react";
+import {
+  Calendar,
+  ChevronRight,
+  Gift,
+  // Share2
+} from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useHomeMemories } from "@/hooks/useHomeMemories";
@@ -76,7 +81,6 @@ export default function HomePage() {
               >
                 <Card className="overflow-hidden hover:bg-accent/50 transition-colors">
                   <CardContent className="p-4 flex items-center gap-4">
-                    {/* ★変更: 今日の日付バッジ (yyyy / TODAY) */}
                     <div className="flex flex-col items-center justify-center bg-muted rounded-lg w-14 h-14 flex-shrink-0">
                       <span className="text-[10px] font-bold text-muted-foreground">
                         {format(memory.eventDate.toDate(), "yyyy")}
@@ -86,7 +90,14 @@ export default function HomePage() {
 
                     {/* タイトルと詳細 */}
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-lg truncate">{memory.title}</h3>
+                      <h3 className="font-bold text-lg truncate">
+                        {/* {memory.userId !== user.uid && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 mr-1 px-2 py-0.5 text-[11px] text-primary">
+                            <Share2 className="h-3 w-3" />
+                          </span>
+                        )} */}
+                        {memory.title}
+                      </h3>
                       <p className="text-xs text-muted-foreground truncate">
                         {memory.detail || "詳細はありません"}
                       </p>
@@ -146,7 +157,14 @@ export default function HomePage() {
 
                     {/* タイトルと残り日数 */}
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-bold truncate">{memory.title}</h3>
+                      <h3 className="font-bold truncate">
+                        {/* {memory.userId !== user.uid && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 mr-1 px-2 py-0.5 text-[11px] text-primary">
+                            <Share2 className="h-3 w-3" />
+                          </span>
+                        )} */}
+                        {memory.title}
+                      </h3>
                       <p className="text-xs text-muted-foreground truncate">
                         あと <span className="text-primary font-bold text-sm">{daysLeft}</span> 日
                       </p>

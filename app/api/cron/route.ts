@@ -1,90 +1,93 @@
 // app/api/cron/route.ts
 import { NextResponse } from "next/server";
 import { dbAdmin, messagingAdmin } from "@/lib/firebase/admin";
-// import { format } from "date-fns";
-// import { toZonedTime } from "date-fns-tz";
 
-// ※ date-fns-tz がない場合は npm install date-fns-tz してください
-// 面倒なら手動計算でもいけますが、今回はJST(日本時間)を確実に判定するため手動計算で書きます
-
-export const dynamic = 'force-dynamic'; // キャッシュ無効化
+export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   try {
-    // 1. セキュリティチェック (Vercel Cronからのアクセスであることを確認)
-    const authHeader = request.headers.get('authorization');
+    const authHeader = request.headers.get("authorization");
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      if (process.env.NODE_ENV === 'production') {
-        return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+      if (process.env.NODE_ENV === "production") {
+        return NextResponse.json(
+          { success: false, message: "Unauthorized" },
+          { status: 401 }
+        );
       }
     }
 
     console.log("⏰ Cron job started...");
 
-    // 2. 「日本の今日」の mmdd を取得
-    // VercelのサーバーはUTCなので、+9時間してJSTにする
+    // JSTで今日のmmdd
     const now = new Date();
     const jstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
-    const mm = (jstNow.getMonth() + 1).toString().padStart(2, '0');
-    const dd = jstNow.getDate().toString().padStart(2, '0');
+    const mm = (jstNow.getMonth() + 1).toString().padStart(2, "0");
+    const dd = jstNow.getDate().toString().padStart(2, "0");
     const todayMmDd = `${mm}${dd}`;
 
     console.log(`📅 Checking memories for: ${todayMmDd}`);
 
-    // 3. 今日の日付(mmdd)に一致する記念日を全検索
+    // 今日の記念日を一括取得
     const memoriesSnapshot = await dbAdmin
       .collection("memories")
       .where("mmdd", "==", todayMmDd)
       .get();
 
-    if (memoriesSnapshot.empty) {
-      console.log("No memories found for today.");
-      return NextResponse.json({ success: true, count: 0 });
-    }
-
-    // 4. 通知を送るべきユーザーIDと記念日タイトルをまとめる
-    // Map<UserId, string[]> -> ユーザーごとに記念日タイトルのリスト
-    const userNotifications = new Map<string, string[]>();
-
+    // userId -> [{title, isShared}]
+    const ownerMemories = new Map<
+      string,
+      { title: string; isShared: boolean }[]
+    >();
     memoriesSnapshot.forEach((doc) => {
       const data = doc.data();
-      const uid = data.userId;
-      const title = data.title;
-      
-      if (uid && title) {
-        const currentList = userNotifications.get(uid) || [];
-        currentList.push(title);
-        userNotifications.set(uid, currentList);
-      }
+      const uid = data.userId as string | undefined;
+      const title = data.title as string | undefined;
+      const isShared = !!data.isShared;
+      if (!uid || !title) return;
+      const arr = ownerMemories.get(uid) || [];
+      arr.push({ title, isShared });
+      ownerMemories.set(uid, arr);
     });
 
-    // 5. ユーザーごとに通知送信
-    let successCount = 0;
+    // TODO: 通知対象ユーザーを取得（全ユーザーを読む。規模が大きくなったら絞り込みを検討）
+    const usersSnap = await dbAdmin.collection("users").get();
 
-    for (const [uid, titles] of userNotifications.entries()) {
-      // ユーザーのFCMトークンを取得
-      const userDoc = await dbAdmin.collection("users").doc(uid).get();
+    let successCount = 0;
+    for (const userDoc of usersSnap.docs) {
       const userData = userDoc.data();
-      const token = userData?.fcmToken;
+      const uid = userDoc.id;
+      const token = userData?.fcmToken as string | undefined;
+      const partnerId = userData?.partnerId as string | undefined;
 
       if (!token) {
         console.log(`❌ No token for user ${uid}`);
         continue;
       }
 
-      // 通知メッセージ作成
+      const myMemories = ownerMemories.get(uid) || [];
+      const partnerShared = partnerId
+        ? (ownerMemories.get(partnerId) || []).filter((m) => m.isShared)
+        : [];
+
+      const combinedTitles = [...myMemories, ...partnerShared].map(
+        (m) => m.title
+      );
+
+      if (combinedTitles.length === 0) {
+        continue;
+      }
+
       let notificationTitle = "";
       let notificationBody = "";
 
-      if (titles.length === 1) {
-        // 1つのとき
-        notificationTitle = `今日は「${titles[0]}」です！🎉`;
+      if (combinedTitles.length === 1) {
+        notificationTitle = `今日は「${combinedTitles[0]}」です！🎉`;
         notificationBody = "思い出を振り返りましょう。";
       } else {
-        // 複数のとき
         notificationTitle = "今日は記念日です！🎉";
-        // タイトルを改行でつなげて、最後にメッセージを追加
-        notificationBody = `${titles.join("\n")}\n思い出を振り返りましょう。`;
+        notificationBody = `${combinedTitles.join(
+          "\n"
+        )}\n思い出を振り返りましょう。`;
       }
 
       const message = {
@@ -92,7 +95,7 @@ export async function GET(request: Request) {
           title: notificationTitle,
           body: notificationBody,
         },
-        token: token,
+        token,
       };
 
       try {
@@ -105,9 +108,11 @@ export async function GET(request: Request) {
     }
 
     return NextResponse.json({ success: true, sent: successCount });
-
   } catch (error) {
     console.error("Cron error:", error);
-    return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }
