@@ -5,6 +5,13 @@
 
 PWAに対応しているため、スマホのホーム画面に追加してアプリのように利用できます。また、毎朝9:00に当日の記念日をプッシュ通知でお知らせするため、大切な日を見逃すことがありません。
 
+<p align="center">
+  <img src="public/screenshot/home.png" alt="screen1" width="22%" />
+  <img src="public/screenshot/calendar.png" alt="screen2" width="22%" />
+  <img src="public/screenshot/edit.png" alt="screen3" width="22%" />
+  <img src="public/screenshot/setting.png" alt="screen4" width="22%" />
+</p>
+
 ## 🏷️ リリース
 ### v2.0.0 (2025.12.25)
 - パートナー予定もピン留めできるように実装
