@@ -221,7 +221,7 @@ export function useMemories(month: number) {
       await setMainMemoryId(user.uid, id);
       setPinnedId(id);
     }
-  }
+  };
 
   return { memories, loading, addMemory, deleteMemory, updateMemory, togglePin, pinnedId };
 }

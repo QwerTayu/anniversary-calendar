@@ -12,7 +12,9 @@ export function useAuth() {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
-        void ensureUserDocument(currentUser);
+        ensureUserDocument(currentUser).catch((error) => {
+          console.error("Failed to ensure user document:", error);
+        });
       }
       setLoading(false);
     });
