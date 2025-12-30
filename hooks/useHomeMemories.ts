@@ -58,6 +58,8 @@ export function useHomeMemories() {
 
           const upcoming = all
             .map((memory) => {
+              const eventDate = memory.eventDate?.toDate?.() as Date | undefined;
+              const eventYear = eventDate?.getFullYear() ?? now.getFullYear();
               const memMonth = parseInt(memory.mmdd.slice(0, 2)) - 1;
               const memDay = parseInt(memory.mmdd.slice(2, 4));
               const todayZero = new Date(
@@ -65,13 +67,15 @@ export function useHomeMemories() {
                 now.getMonth(),
                 now.getDate()
               );
-              let nextDate = new Date(now.getFullYear(), memMonth, memDay);
-              if (nextDate.getTime() < todayZero.getTime())
-                nextDate = new Date(now.getFullYear() + 1, memMonth, memDay);
+              let nextOccurrence = new Date(now.getFullYear(), memMonth, memDay);
+              if (nextOccurrence.getTime() < todayZero.getTime())
+                nextOccurrence = new Date(now.getFullYear() + 1, memMonth, memDay);
               const daysLeft = Math.ceil(
-                (nextDate.getTime() - todayZero.getTime()) /
+                (nextOccurrence.getTime() - todayZero.getTime()) /
                   (1000 * 60 * 60 * 24)
               );
+              // nextDateは表示用に実際の記念日の年を保持する
+              const nextDate = new Date(eventYear, memMonth, memDay);
               return { memory, daysLeft, nextDate };
             })
             .filter((x) => x.daysLeft > 0)
