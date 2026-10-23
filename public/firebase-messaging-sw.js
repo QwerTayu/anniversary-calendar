@@ -21,14 +21,8 @@ firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
 // バックグラウンド通知のハンドリング
+// notification を含むメッセージは SDK が自動で表示するので、ここで showNotification すると二重に届く。
+// アイコンは cron 側で webpush.notification.icon として送る
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Received background message ', payload);
-  
-  const notificationTitle = payload.notification.title;
-  const notificationOptions = {
-    body: payload.notification.body,
-    icon: '/icons/icon-192x192.png' // アイコン画像へのパス
-  };
-
-  self.registration.showNotification(notificationTitle, notificationOptions);
 });
