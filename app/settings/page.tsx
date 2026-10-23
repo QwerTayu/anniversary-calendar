@@ -10,10 +10,17 @@ import {
   Link as LinkIcon,
   Unlink,
 } from "lucide-react";
-import { doc, updateDoc, deleteField, onSnapshot } from "firebase/firestore";
+import {
+  doc,
+  setDoc,
+  updateDoc,
+  deleteField,
+  onSnapshot,
+} from "firebase/firestore";
 import { auth, db } from "@/lib/firebase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useFcmToken } from "@/hooks/useFcmToken";
+import { NOTIFY_DAYS_BEFORE_OPTIONS } from "@/lib/notification";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -34,6 +41,7 @@ export default function SettingsPage() {
   const { requestNotificationPermission } = useFcmToken();
 
   const [isNotifEnabled, setIsNotifEnabled] = useState(false);
+  const [notifyDaysBefore, setNotifyDaysBefore] = useState<number[]>([]);
   const [isSettingsLoading, setIsSettingsLoading] = useState(true);
   const [isNotifSaving, setIsNotifSaving] = useState(false);
   const [partnerId, setPartnerId] = useState<string | null>(null);
@@ -61,6 +69,9 @@ export default function SettingsPage() {
         const data = docSnap.data();
         // fcmTokenフィールドが存在すれば「通知ON」とみなす
         setIsNotifEnabled(!!data.fcmToken);
+        setNotifyDaysBefore(
+          Array.isArray(data.notifyDaysBefore) ? data.notifyDaysBefore : []
+        );
         const pid = data.partnerId || null;
         setPartnerId(pid);
 
@@ -106,6 +117,28 @@ export default function SettingsPage() {
       alert("設定の変更に失敗しました。");
     } finally {
       setIsNotifSaving(false);
+    }
+  };
+
+  // 事前通知の切替ハンドラ
+  const handleDaysBeforeToggle = async (days: number, checked: boolean) => {
+    if (!user) return;
+    const prev = notifyDaysBefore;
+    const next = checked
+      ? [...new Set([...prev, days])].sort((a, b) => a - b)
+      : prev.filter((d) => d !== days);
+    setNotifyDaysBefore(next);
+
+    try {
+      await setDoc(
+        doc(db, "users", user.uid),
+        { notifyDaysBefore: next },
+        { merge: true }
+      );
+    } catch (error) {
+      console.error("Days-before toggle error:", error);
+      setNotifyDaysBefore(prev); // 失敗時は戻す
+      alert("設定の変更に失敗しました。");
     }
   };
 
@@ -265,6 +298,32 @@ export default function SettingsPage() {
                 />
               </div>
             )}
+          </div>
+
+          <Separator className="my-3" />
+
+          <div className="space-y-2 py-2">
+            <div className="space-y-0.5">
+              <p className="text-base font-medium">事前通知</p>
+              <p className="text-xs text-muted-foreground">
+                当日に加えて、選んだタイミングでもお知らせします
+              </p>
+            </div>
+            {NOTIFY_DAYS_BEFORE_OPTIONS.map(({ days, label }) => (
+              <div key={days} className="flex items-center justify-between">
+                <Label htmlFor={`notif-before-${days}`} className="text-sm">
+                  {label}
+                </Label>
+                <Switch
+                  id={`notif-before-${days}`}
+                  checked={notifyDaysBefore.includes(days)}
+                  onCheckedChange={(checked) =>
+                    handleDaysBeforeToggle(days, checked)
+                  }
+                  disabled={isSettingsLoading}
+                />
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
