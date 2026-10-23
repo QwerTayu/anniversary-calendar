@@ -114,6 +114,10 @@ export async function GET(request: Request) {
 
         const message = {
           notification: buildNotification(offset, titles),
+          // バックグラウンドでは SW の SDK がこの内容で表示する
+          webpush: {
+            notification: { icon: "/icons/icon-192x192.png" },
+          },
           token,
         };
 
